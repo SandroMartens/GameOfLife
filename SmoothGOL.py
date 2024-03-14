@@ -1,9 +1,8 @@
 import cv2
+import matplotlib.pyplot as plt
 import numpy as np
 import pygame
 import scipy
-import matplotlib.pyplot as plt
-import scipy.signal
 
 
 class GameOfLife:
@@ -13,7 +12,7 @@ class GameOfLife:
         target_fps: int = 60,
         colormap: str = "magma",
         n_intermediate_steps: int = 10,
-        random_state: int or None = None,
+        random_state: int | None = None,
     ) -> None:
         """
         Initialize the GameOfLife object.
@@ -87,6 +86,7 @@ class GameOfLife:
         pygame.display.flip()
 
     def create_rgb_array(self, resized_array) -> np.ndarray:
+        """Convert values of each pixel to a color according to the select matplotlib colormap."""
         colormap = plt.get_cmap(self.colormap)
         rgb_array = colormap(resized_array)[:, :, :3] * 255
         return rgb_array
@@ -108,9 +108,9 @@ class GameOfLife:
         """
         factor = 1 / self.n_intermediate_steps
         current_array = self.array
-        neighbor_sum = self.calculate_neighbor_sum()
-        survival_conditions = np.logical_and(neighbor_sum >= 1.5, neighbor_sum <= 3.5)
-        birth_conditions = np.logical_and(neighbor_sum >= 1.9, neighbor_sum <= 3)
+        neighbor_sums = self.calculate_neighbor_sum()
+        survival_conditions = np.logical_and(neighbor_sums >= 1.5, neighbor_sums <= 3.5)
+        birth_conditions = np.logical_and(neighbor_sums >= 1.9, neighbor_sums <= 3)
 
         growing_cells = current_array * survival_conditions
         shrinking_cells = current_array * ~survival_conditions
@@ -118,7 +118,7 @@ class GameOfLife:
         dying_cells = (1 - current_array) * (~birth_conditions)
 
         next_full_step = growing_cells + born_cells - dying_cells - shrinking_cells
-        next_full_step = np.clip(next_full_step, -1, 1)
+        # next_full_step = np.clip(next_full_step, -1, 1)
 
         next_intermediate_step = current_array + factor * next_full_step
         # next_intermediate_step = (1 - factor) * current_array + factor * next_full_step
@@ -126,7 +126,7 @@ class GameOfLife:
 
         self.array = next_intermediate_step
 
-    def calculate_neighbor_sum(self):
+    def calculate_neighbor_sum(self) -> np.ndarray:
         inner_kernel = self.gaussian_kernel(sigma=0.5, size=7)
         outer_kernel = self.gaussian_kernel(sigma=1.5, size=7)
         outer_kernel *= 9
