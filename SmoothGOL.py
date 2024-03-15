@@ -13,6 +13,8 @@ class GameOfLife:
         colormap: str = "magma",
         n_intermediate_steps: int = 10,
         random_state: int | None = None,
+        survival_interval: list | None = None,
+        birth_interval: list | None = None,
     ) -> None:
         """
         Initialize the GameOfLife object.
@@ -29,12 +31,15 @@ class GameOfLife:
         self.screen_width = 1000
         self.screen_height = 1000
         self.colormap = colormap
+        self.factor = 1 / n_intermediate_steps
         self.n_intermediate_steps = n_intermediate_steps
         self.n_squares_width = self.screen_width // self.square_size
         self.n_squares_height = self.screen_height // self.square_size
         self.screen = pygame.display.set_mode((self.screen_width, self.screen_height))
         self.clock = pygame.time.Clock()
         self.running = True
+        self.survival_interval = survival_interval
+        self.birth_interval = birth_interval
         self.random_state = random_state
         self.initialize_map()
         self.kernel = np.array([[1, 1, 1], [1, 0, 1], [1, 1, 1]])
@@ -106,29 +111,38 @@ class GameOfLife:
         """
         Apply the rules of Conway's Game of Life to update the given 2D array.
         """
-        factor = 1 / self.n_intermediate_steps
-        current_array = self.array
-        neighbor_sums = self.calculate_neighbor_sum()
-        survival_conditions = np.logical_and(neighbor_sums >= 1.5, neighbor_sums <= 3.5)
-        birth_conditions = np.logical_and(neighbor_sums >= 1.9, neighbor_sums <= 3)
 
-        growing_cells = current_array * survival_conditions
-        shrinking_cells = current_array * ~survival_conditions
-        born_cells = (1 - current_array) * birth_conditions
-        dying_cells = (1 - current_array) * (~birth_conditions)
+        survival_minimum, survival_maximum = self.survival_interval
+        birth_minimum, birth_maximum = self.birth_interval
+        current_state = self.array.clip(0, 1)
+        neighbor_sums = self.calculate_neighbor_sum()
+        survival_conditions = np.logical_and(
+            neighbor_sums >= survival_minimum, neighbor_sums <= survival_maximum
+        )
+        birth_conditions = np.logical_and(
+            neighbor_sums >= birth_minimum, neighbor_sums <= birth_maximum
+        )
+
+        growing_cells = current_state * survival_conditions
+        shrinking_cells = current_state * ~survival_conditions
+        born_cells = (1 - current_state) * birth_conditions
+        dying_cells = (1 - current_state) * (~birth_conditions)
 
         next_full_step = growing_cells + born_cells - dying_cells - shrinking_cells
-        # next_full_step = np.clip(next_full_step, -1, 1)
+        next_full_step = np.clip(next_full_step, -1, 1)
+        next_intermediate_step = current_state + self.factor * next_full_step
+        # next_intermediate_step = 2 * next_full_step - 1
+        # next_intermediate_step = (1 - factor) * current_state + factor * next_full_step
+        # next_intermediate_step = factor * next_full_step - current_state
+        # next_intermediate_step = np.clip(next_intermediate_step, -0, 1)
 
-        next_intermediate_step = current_array + factor * next_full_step
-        # next_intermediate_step = (1 - factor) * current_array + factor * next_full_step
-        next_intermediate_step = np.clip(next_intermediate_step, -0.4, 1.5)
+        # self.array = self.transition_function(neighbor_sums / 8, self.array)
 
         self.array = next_intermediate_step
 
     def calculate_neighbor_sum(self) -> np.ndarray:
-        inner_kernel = self.gaussian_kernel(sigma=0.5, size=7)
-        outer_kernel = self.gaussian_kernel(sigma=1.5, size=7)
+        inner_kernel = self.gaussian_kernel(sigma=0.5, size=5)
+        outer_kernel = self.gaussian_kernel(sigma=1.5, size=5)
         outer_kernel *= 9
 
         # outer_kernel = np.ones(shape=(3, 3))
@@ -148,10 +162,32 @@ class GameOfLife:
         g = np.exp(-(x**2 + y**2) / (2 * sigma**2))
         return g / g.sum()
 
+    def transition_function(self, n, m):
+        d1 = d2 = b2 = 3 / 8
+        b1 = 2 / 8
+        result = self.sigmoid_n(
+            n=n, a=self.sigmoid_m(m, b1, b2), b=self.sigmoid_m(m, d1, d2)
+        )
+        return result
+
+    def sigmoid(self, x, a):
+        return (1 + np.exp(-10 * (x - a))) ** -1
+
+    def sigmoid_m(self, m, a, b):
+        return a * (1 - self.sigmoid(m, 0.5) + b * self.sigmoid(m, 0.5))
+
+    def sigmoid_n(self, n, a, b):
+        return self.sigmoid(n, a) * (1 - self.sigmoid(n, b))
+
 
 def run():
     game = GameOfLife(
-        square_size=5, n_intermediate_steps=10, random_state=32, colormap="magma"
+        square_size=5,
+        n_intermediate_steps=10,
+        random_state=32,
+        colormap="magma",
+        survival_interval=[1.5, 3.5],
+        birth_interval=[2, 3],
     )
     game.run_game()
 
