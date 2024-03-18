@@ -130,23 +130,23 @@ class GameOfLife:
 
         next_full_step = growing_cells + born_cells - dying_cells - shrinking_cells
         next_full_step = np.clip(next_full_step, -1, 1)
-        next_intermediate_step = current_state + self.factor * next_full_step
-        # next_intermediate_step = 2 * next_full_step - 1
-        # next_intermediate_step = (1 - factor) * current_state + factor * next_full_step
-        # next_intermediate_step = factor * next_full_step - current_state
-        # next_intermediate_step = np.clip(next_intermediate_step, -0, 1)
 
-        # self.array = self.transition_function(neighbor_sums / 8, self.array)
+        next_intermediate_step = current_state + self.factor * next_full_step
+        # next_intermediate_step = (
+        #     1 - self.factor
+        # ) * current_state + self.factor * next_full_step
+        # next_intermediate_step = np.clip(next_intermediate_step, -0, 1)
+        # 1
 
         self.array = next_intermediate_step
 
     def calculate_neighbor_sum(self) -> np.ndarray:
-        inner_kernel = self.gaussian_kernel(sigma=0.5, size=5)
-        outer_kernel = self.gaussian_kernel(sigma=1.5, size=5)
-        outer_kernel *= 9
+        # inner_kernel = self.gaussian_kernel(sigma=0.5, size=5)
+        # outer_kernel = self.gaussian_kernel(sigma=1.5, size=5)
+        # outer_kernel *= 9
 
-        # outer_kernel = np.ones(shape=(3, 3))
-        # inner_kernel = np.array([[0, 0, 0], [0, 1, 0], [0, 0, 0]])
+        outer_kernel = np.ones(shape=(3, 3))
+        inner_kernel = np.array([[0, 0, 0], [0, 1, 0], [0, 0, 0]])
 
         neighborhood_kernel = outer_kernel - inner_kernel
         neighbor_sum = scipy.ndimage.convolve(
@@ -187,7 +187,7 @@ def run():
         random_state=32,
         colormap="magma",
         survival_interval=[1.5, 3.5],
-        birth_interval=[2, 3],
+        birth_interval=[2.5, 3.5],
     )
     game.run_game()
 
