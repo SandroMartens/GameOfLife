@@ -67,7 +67,7 @@ class GameOfLife:
                 self.n_squares_width * self.square_size,
                 self.n_squares_height * self.square_size,
             ),
-            interpolation=cv2.INTER_LANCZOS4,
+            # interpolation=cv2.INTER_LANCZOS4,
         )
         return resized_image
 
@@ -85,13 +85,14 @@ class GameOfLife:
         """
         array_to_show = np.clip(self.array, 0, 1) * 255
         resized_array = self.resize_image(array_to_show)
-        rgb_array = self.create_rgb_array(resized_array)
+        rgb_array = self.apply_colormap(resized_array)
         surface = pygame.surfarray.make_surface(rgb_array)
         self.screen.blit(surface, (0, 0))
         pygame.display.flip()
 
-    def create_rgb_array(self, resized_array) -> np.ndarray:
-        """Convert values of each pixel to a color according to the select matplotlib colormap."""
+    def apply_colormap(self, resized_array) -> np.ndarray:
+        """Convert values of each pixel to a color according to the selected
+        matplotlib colormap."""
         colormap = plt.get_cmap(self.colormap)
         rgb_array = colormap(resized_array)[:, :, :3] * 255
         return rgb_array
@@ -103,7 +104,7 @@ class GameOfLife:
         rng = np.random.default_rng(self.random_state)
         # array = rng.integers(2, size=(self.n_squares_width, self.n_squares_height))
         array = rng.random(size=(self.n_squares_width, self.n_squares_height))
-        mask = rng.random(size=array.shape) < 0.5
+        mask = rng.random(size=array.shape) < 0.45
         array = np.where(mask, array, 0)
         self.array = array
 
@@ -128,25 +129,23 @@ class GameOfLife:
         born_cells = (1 - current_state) * birth_conditions
         dying_cells = (1 - current_state) * (~birth_conditions)
 
-        next_full_step = growing_cells + born_cells - dying_cells - shrinking_cells
-        next_full_step = np.clip(next_full_step, -1, 1)
+        change = growing_cells + born_cells - dying_cells - shrinking_cells
 
-        next_intermediate_step = current_state + self.factor * next_full_step
+        next_intermediate_step = current_state + self.factor * change
         # next_intermediate_step = (
         #     1 - self.factor
         # ) * current_state + self.factor * next_full_step
-        # next_intermediate_step = np.clip(next_intermediate_step, -0, 1)
-        # 1
+        next_intermediate_step = np.clip(next_intermediate_step, -0, 1)
 
-        self.array = next_intermediate_step
+        self.array = next_intermediate_step  # .clip(0, 1)
 
     def calculate_neighbor_sum(self) -> np.ndarray:
-        # inner_kernel = self.gaussian_kernel(sigma=0.5, size=5)
-        # outer_kernel = self.gaussian_kernel(sigma=1.5, size=5)
-        # outer_kernel *= 9
+        inner_kernel = self.gaussian_kernel(sigma=0.5, size=7)
+        outer_kernel = self.gaussian_kernel(sigma=1.5, size=7)
+        outer_kernel *= 9
 
-        outer_kernel = np.ones(shape=(3, 3))
-        inner_kernel = np.array([[0, 0, 0], [0, 1, 0], [0, 0, 0]])
+        # outer_kernel = np.ones(shape=(3, 3))
+        # inner_kernel = np.array([[0, 0, 0], [0, 1, 0], [0, 0, 0]])
 
         neighborhood_kernel = outer_kernel - inner_kernel
         neighbor_sum = scipy.ndimage.convolve(
@@ -155,29 +154,29 @@ class GameOfLife:
 
         return neighbor_sum
 
-    def gaussian_kernel(self, size=10, sigma=3) -> np.ndarray:
+    def gaussian_kernel(self, size, sigma) -> np.ndarray:
         """Generates a 2D Gaussian kernel."""
         size = int(size) // 2
         x, y = np.mgrid[-size : size + 1, -size : size + 1]
         g = np.exp(-(x**2 + y**2) / (2 * sigma**2))
         return g / g.sum()
 
-    def transition_function(self, n, m):
-        d1 = d2 = b2 = 3 / 8
-        b1 = 2 / 8
-        result = self.sigmoid_n(
-            n=n, a=self.sigmoid_m(m, b1, b2), b=self.sigmoid_m(m, d1, d2)
-        )
-        return result
+    # def transition_function(self, n, m):
+    #     d1 = d2 = b2 = 3 / 8
+    #     b1 = 2 / 8
+    #     result = self.sigmoid_n(
+    #         n=n, a=self.sigmoid_m(m, b1, b2), b=self.sigmoid_m(m, d1, d2)
+    #     )
+    #     return result
 
-    def sigmoid(self, x, a):
-        return (1 + np.exp(-10 * (x - a))) ** -1
+    # def sigmoid(self, x, a):
+    #     return (1 + np.exp(-10 * (x - a))) ** -1
 
-    def sigmoid_m(self, m, a, b):
-        return a * (1 - self.sigmoid(m, 0.5) + b * self.sigmoid(m, 0.5))
+    # def sigmoid_m(self, m, a, b):
+    #     return a * (1 - self.sigmoid(m, 0.5) + b * self.sigmoid(m, 0.5))
 
-    def sigmoid_n(self, n, a, b):
-        return self.sigmoid(n, a) * (1 - self.sigmoid(n, b))
+    # def sigmoid_n(self, n, a, b):
+    #     return self.sigmoid(n, a) * (1 - self.sigmoid(n, b))
 
 
 def run():
