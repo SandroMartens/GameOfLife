@@ -9,12 +9,13 @@ class GameOfLife:
     def __init__(
         self,
         square_size: int = 5,
-        target_fps: int = 60,
+        target_fps: int = 160,
         colormap: str = "magma",
         n_intermediate_steps: int = 10,
         random_state: int | None = None,
         survival_interval: list | None = None,
         birth_interval: list | None = None,
+        k=10,
     ) -> None:
         """
         Initialize the GameOfLife object.
@@ -43,6 +44,7 @@ class GameOfLife:
         self.random_state = random_state
         self.initialize_map()
         self.kernel = np.array([[1, 1, 1], [1, 0, 1], [1, 1, 1]])
+        self.k = k
 
     def run_game(self) -> None:
         """
@@ -67,7 +69,7 @@ class GameOfLife:
                 self.n_squares_width * self.square_size,
                 self.n_squares_height * self.square_size,
             ),
-            # interpolation=cv2.INTER_LANCZOS4,
+            interpolation=cv2.INTER_LANCZOS4,
         )
         return resized_image
 
@@ -104,7 +106,7 @@ class GameOfLife:
         rng = np.random.default_rng(self.random_state)
         # array = rng.integers(2, size=(self.n_squares_width, self.n_squares_height))
         array = rng.random(size=(self.n_squares_width, self.n_squares_height))
-        mask = rng.random(size=array.shape) < 0.45
+        mask = rng.random(size=array.shape) < 0.4
         array = np.where(mask, array, 0)
         self.array = array
 
@@ -114,20 +116,22 @@ class GameOfLife:
         """
 
         survival_minimum, survival_maximum = self.survival_interval
+        # current_state = 1 / (1 + np.exp(-10 * (self.array - 0.5)))
         birth_minimum, birth_maximum = self.birth_interval
-        current_state = self.array.clip(0, 1)
+        current_state = self.array.clip(-self.factor, 1 + self.factor)
+        k = self.k
         neighbor_sums = self.calculate_neighbor_sum()
         survival_conditions = self.calculate_transition_intervals(
             x=neighbor_sums,
             lower_threshold=survival_minimum,
             upper_threshold=survival_maximum,
-            k=100,
+            k=k,
         )
         birth_conditions = self.calculate_transition_intervals(
             x=neighbor_sums,
             lower_threshold=birth_minimum,
             upper_threshold=birth_maximum,
-            k=10,
+            k=k,
         )
 
         growing_cells = current_state * survival_conditions
@@ -140,15 +144,15 @@ class GameOfLife:
         next_intermediate_step = current_state + self.factor * change
         # next_intermediate_step = np.clip(next_intermediate_step, -0, 1)
 
-        self.array = next_intermediate_step.clip(0, 1)
+        self.array = next_intermediate_step  # .clip(-self.factor, 1 + self.factor)
 
     def calculate_neighbor_sum(self) -> np.ndarray:
-        # inner_kernel = self.gaussian_kernel(sigma=0.5, size=7)
-        # outer_kernel = self.gaussian_kernel(sigma=1.5, size=7)
-        # outer_kernel *= 9
+        inner_kernel = self.gaussian_kernel(sigma=0.5, size=7)
+        outer_kernel = self.gaussian_kernel(sigma=1.5, size=7)
+        outer_kernel *= 9
 
-        outer_kernel = np.ones(shape=(3, 3))
-        inner_kernel = np.array([[0, 0, 0], [0, 1, 0], [0, 0, 0]])
+        # outer_kernel = np.ones(shape=(3, 3))
+        # inner_kernel = np.array([[0, 0, 0], [0, 1, 0], [0, 0, 0]])
 
         neighborhood_kernel = outer_kernel - inner_kernel
         neighbor_sum = scipy.ndimage.convolve(
@@ -174,12 +178,13 @@ class GameOfLife:
 
 def run():
     game = GameOfLife(
-        square_size=5,
-        n_intermediate_steps=1,
+        square_size=10,
+        n_intermediate_steps=20,
         random_state=32,
         colormap="magma",
         survival_interval=[1.5, 3.5],
         birth_interval=[2.5, 3.5],
+        k=10,
     )
     game.run_game()
 
