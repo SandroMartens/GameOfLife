@@ -17,6 +17,7 @@ class GameOfLife:
         random_state: int | None = None,
         survival_interval: list = [1.5, 3.5],
         birth_interval: list = [2.5, 3.5],
+        density: float = 0.5,
         k=10,
     ) -> None:
         """
@@ -34,6 +35,7 @@ class GameOfLife:
         self.screen_width = 1000
         self.screen_height = 1000
         self.colormap = colormap
+        self.density = density
         self.time_factor = 1 / n_intermediate_time_steps
         self.alive_factor = 1 / n_intermediate_alive_steps
         self.n_intermediate_time_steps = n_intermediate_time_steps
@@ -108,11 +110,19 @@ class GameOfLife:
         Initialize a binary array with random values.
         """
         rng = np.random.default_rng(self.random_state)
-        # array = rng.integers(2, size=(self.n_squares_width, self.n_squares_height))
         array = rng.random(size=(self.n_squares_width, self.n_squares_height))
-        mask = rng.random(size=array.shape) < 0.6
+        mask = rng.random(size=array.shape) < self.density
         array = np.where(mask, array, 0)
         self.array = array
+
+    def calculate_cell_changes(
+        self, current_state, survival_conditions, birth_conditions
+    ):
+        growing_cells = current_state * survival_conditions
+        shrinking_cells = current_state * (1 - survival_conditions)
+        born_cells = (1 - current_state) * birth_conditions
+        dying_cells = (1 - current_state) * (1 - birth_conditions)
+        return growing_cells, shrinking_cells, born_cells, dying_cells
 
     def calculate_next_step(self) -> None:
         """
@@ -122,7 +132,6 @@ class GameOfLife:
         survival_minimum, survival_maximum = self.survival_interval
         birth_minimum, birth_maximum = self.birth_interval
         current_state = 1 / (1 + np.exp(-10 * (self.array - 0.5)))
-        # current_state = self.array.clip(0, 1)
         k = self.k
         neighbor_sums = self.calculate_neighbor_sum()
         survival_conditions = self.calculate_transition_intervals(
@@ -138,21 +147,24 @@ class GameOfLife:
             k=k,
         )
 
-        growing_cells = current_state * survival_conditions
-        shrinking_cells = current_state * (1 - survival_conditions)
-        born_cells = (1 - current_state) * birth_conditions
-        dying_cells = (1 - current_state) * (1 - birth_conditions)
+        growing_cells, shrinking_cells, born_cells, dying_cells = (
+            self.calculate_cell_changes(
+                current_state, survival_conditions, birth_conditions
+            )
+        )
 
         change = (growing_cells + born_cells - dying_cells - shrinking_cells).clip(
             -1, 1
         )
 
-        next_intermediate_step = current_state + self.alive_factor * change
+        next_intermediate_step = (
+            current_state + self.alive_factor * change  # * current_state
+        )
         self.array = next_intermediate_step.clip(0, 1)
 
     def calculate_neighbor_sum(self) -> np.ndarray:
-        inner_kernel = self.gaussian_kernel(sigma=2, size=20)
-        outer_kernel = self.gaussian_kernel(sigma=6, size=20)
+        inner_kernel = self.gaussian_kernel(sigma=1, size=10)
+        outer_kernel = self.gaussian_kernel(sigma=3, size=10)
         outer_kernel *= 9
 
         # outer_kernel = np.ones(shape=(3, 3))
@@ -172,7 +184,7 @@ class GameOfLife:
         sigmoid_down = 1 / (1 + np.exp(-k * (x - upper_threshold)))
         return sigmoid_up - sigmoid_down
 
-    def gaussian_kernel(self, size, sigma) -> np.ndarray:
+    def gaussian_kernel(self, size: int, sigma: float) -> np.ndarray:
         """Generates a 2D Gaussian kernel."""
         size = int(size) // 2
         x, y = np.mgrid[-size : size + 1, -size : size + 1]
@@ -189,7 +201,8 @@ def run():
         colormap="magma",
         survival_interval=[1.5, 3.5],
         birth_interval=[2.5, 3.5],
-        k=5,
+        k=4,
+        density=0.5,
     )
     game.run_game()
 
