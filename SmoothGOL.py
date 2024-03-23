@@ -6,15 +6,17 @@ import scipy
 
 
 class GameOfLife:
+
     def __init__(
         self,
         square_size: int = 5,
         target_fps: int = 160,
         colormap: str = "magma",
-        n_intermediate_steps: int = 10,
+        n_intermediate_time_steps: int = 1,
+        n_intermediate_alive_steps: int = 1,
         random_state: int | None = None,
-        survival_interval: list | None = None,
-        birth_interval: list | None = None,
+        survival_interval: list = [1.5, 3.5],
+        birth_interval: list = [2.5, 3.5],
         k=10,
     ) -> None:
         """
@@ -32,8 +34,10 @@ class GameOfLife:
         self.screen_width = 1000
         self.screen_height = 1000
         self.colormap = colormap
-        self.factor = 1 / n_intermediate_steps
-        self.n_intermediate_steps = n_intermediate_steps
+        self.time_factor = 1 / n_intermediate_time_steps
+        self.alive_factor = 1 / n_intermediate_alive_steps
+        self.n_intermediate_time_steps = n_intermediate_time_steps
+        self.n_intermediate_alive_steps = n_intermediate_alive_steps
         self.n_squares_width = self.screen_width // self.square_size
         self.n_squares_height = self.screen_height // self.square_size
         self.screen = pygame.display.set_mode((self.screen_width, self.screen_height))
@@ -52,7 +56,7 @@ class GameOfLife:
         """
         while self.running:
             self.handle_events()
-            for i in range(self.n_intermediate_steps):
+            for i in range(self.n_intermediate_time_steps):
                 self.calculate_next_step()
                 # if i % 10 == 0:
                 # pass
@@ -106,7 +110,7 @@ class GameOfLife:
         rng = np.random.default_rng(self.random_state)
         # array = rng.integers(2, size=(self.n_squares_width, self.n_squares_height))
         array = rng.random(size=(self.n_squares_width, self.n_squares_height))
-        mask = rng.random(size=array.shape) < 0.4
+        mask = rng.random(size=array.shape) < 0.6
         array = np.where(mask, array, 0)
         self.array = array
 
@@ -116,9 +120,9 @@ class GameOfLife:
         """
 
         survival_minimum, survival_maximum = self.survival_interval
-        # current_state = 1 / (1 + np.exp(-10 * (self.array - 0.5)))
         birth_minimum, birth_maximum = self.birth_interval
-        current_state = self.array.clip(-self.factor, 1 + self.factor)
+        current_state = 1 / (1 + np.exp(-10 * (self.array - 0.5)))
+        # current_state = self.array.clip(0, 1)
         k = self.k
         neighbor_sums = self.calculate_neighbor_sum()
         survival_conditions = self.calculate_transition_intervals(
@@ -139,16 +143,16 @@ class GameOfLife:
         born_cells = (1 - current_state) * birth_conditions
         dying_cells = (1 - current_state) * (1 - birth_conditions)
 
-        change = growing_cells + born_cells - dying_cells - shrinking_cells
+        change = (growing_cells + born_cells - dying_cells - shrinking_cells).clip(
+            -1, 1
+        )
 
-        next_intermediate_step = current_state + self.factor * change
-        # next_intermediate_step = np.clip(next_intermediate_step, -0, 1)
-
-        self.array = next_intermediate_step  # .clip(-self.factor, 1 + self.factor)
+        next_intermediate_step = current_state + self.alive_factor * change
+        self.array = next_intermediate_step.clip(0, 1)
 
     def calculate_neighbor_sum(self) -> np.ndarray:
-        inner_kernel = self.gaussian_kernel(sigma=0.5, size=7)
-        outer_kernel = self.gaussian_kernel(sigma=1.5, size=7)
+        inner_kernel = self.gaussian_kernel(sigma=2, size=20)
+        outer_kernel = self.gaussian_kernel(sigma=6, size=20)
         outer_kernel *= 9
 
         # outer_kernel = np.ones(shape=(3, 3))
@@ -178,13 +182,14 @@ class GameOfLife:
 
 def run():
     game = GameOfLife(
-        square_size=10,
-        n_intermediate_steps=20,
+        square_size=5,
+        # n_intermediate_time_steps=10,
+        n_intermediate_alive_steps=1,
         random_state=32,
         colormap="magma",
         survival_interval=[1.5, 3.5],
         birth_interval=[2.5, 3.5],
-        k=10,
+        k=5,
     )
     game.run_game()
 
