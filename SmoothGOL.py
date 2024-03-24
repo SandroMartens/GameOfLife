@@ -60,8 +60,6 @@ class GameOfLife:
             self.handle_events()
             for i in range(self.n_intermediate_time_steps):
                 self.calculate_next_step()
-                # if i % 10 == 0:
-                # pass
                 self.display_array()
                 self.clock.tick(self.target_fps)
 
@@ -119,10 +117,11 @@ class GameOfLife:
         self, current_state, survival_conditions, birth_conditions
     ):
         growing_cells = current_state * survival_conditions
-        shrinking_cells = current_state * (1 - survival_conditions)
         born_cells = (1 - current_state) * birth_conditions
-        dying_cells = (1 - current_state) * (1 - birth_conditions)
-        return growing_cells, shrinking_cells, born_cells, dying_cells
+
+        change = (2 * (growing_cells + born_cells) - 1).clip(-1, 1)
+        change = ((growing_cells + born_cells) - current_state).clip(-1, 1)
+        return change
 
     def calculate_next_step(self) -> None:
         """
@@ -131,40 +130,34 @@ class GameOfLife:
 
         survival_minimum, survival_maximum = self.survival_interval
         birth_minimum, birth_maximum = self.birth_interval
-        current_state = 1 / (1 + np.exp(-10 * (self.array - 0.5)))
-        k = self.k
+        current_state = 1 / (1 + np.exp(-self.k * (self.array - 0.5)))
         neighbor_sums = self.calculate_neighbor_sum()
         survival_conditions = self.calculate_transition_intervals(
             x=neighbor_sums,
             lower_threshold=survival_minimum,
             upper_threshold=survival_maximum,
-            k=k,
         )
         birth_conditions = self.calculate_transition_intervals(
             x=neighbor_sums,
             lower_threshold=birth_minimum,
             upper_threshold=birth_maximum,
-            k=k,
         )
 
-        growing_cells, shrinking_cells, born_cells, dying_cells = (
-            self.calculate_cell_changes(
-                current_state, survival_conditions, birth_conditions
-            )
+        change = self.calculate_cell_changes(
+            current_state, survival_conditions, birth_conditions
         )
-
-        change = (growing_cells + born_cells - dying_cells - shrinking_cells).clip(
-            -1, 1
+        next_full_step = current_state + change * self.alive_factor  # .clip(-1, 2)
+        next_intermediate_step = ((1 - self.alive_factor) * current_state) + (
+            self.alive_factor * next_full_step
         )
-
-        next_intermediate_step = (
-            current_state + self.alive_factor * change  # * current_state
-        )
-        self.array = next_intermediate_step.clip(0, 1)
+        self.array = next_full_step.clip(0, 1)
 
     def calculate_neighbor_sum(self) -> np.ndarray:
-        inner_kernel = self.gaussian_kernel(sigma=1, size=10)
-        outer_kernel = self.gaussian_kernel(sigma=3, size=10)
+        size = 20
+        cell_radius = 1
+        outer_radius = 3 * cell_radius
+        inner_kernel = self.gaussian_kernel(sigma=cell_radius, size=size)
+        outer_kernel = self.gaussian_kernel(sigma=outer_radius, size=size)
         outer_kernel *= 9
 
         # outer_kernel = np.ones(shape=(3, 3))
@@ -178,10 +171,10 @@ class GameOfLife:
         return neighbor_sum
 
     def calculate_transition_intervals(
-        self, k: float, x: np.ndarray, lower_threshold: float, upper_threshold: float
+        self, x: np.ndarray, lower_threshold: float, upper_threshold: float
     ) -> np.ndarray:
-        sigmoid_up = 1 / (1 + np.exp(-k * (x - lower_threshold)))
-        sigmoid_down = 1 / (1 + np.exp(-k * (x - upper_threshold)))
+        sigmoid_up = self.sigma(x, lower_threshold)
+        sigmoid_down = self.sigma(x, upper_threshold)
         return sigmoid_up - sigmoid_down
 
     def gaussian_kernel(self, size: int, sigma: float) -> np.ndarray:
@@ -191,16 +184,20 @@ class GameOfLife:
         g = np.exp(-(x**2 + y**2) / (2 * sigma**2))
         return g / g.sum()
 
+    def sigma(self, x: np.ndarray, offset: float) -> np.ndarray:
+        result = 1 / (1 + np.exp(-self.k * (x - offset)))
+        return result
+
 
 def run():
     game = GameOfLife(
         square_size=5,
+        target_fps=5,
         # n_intermediate_time_steps=10,
         n_intermediate_alive_steps=1,
         random_state=32,
-        colormap="magma",
         survival_interval=[1.5, 3.5],
-        birth_interval=[2.5, 3.5],
+        birth_interval=[1.5, 3.5],
         k=4,
         density=0.5,
     )
