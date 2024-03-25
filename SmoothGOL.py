@@ -120,7 +120,7 @@ class GameOfLife:
         born_cells = (1 - current_state) * birth_conditions
 
         change = (2 * (growing_cells + born_cells) - 1).clip(-1, 1)
-        change = ((growing_cells + born_cells) - current_state).clip(-1, 1)
+        # change = ((growing_cells + born_cells) - current_state).clip(-1, 1)
         return change
 
     def calculate_next_step(self) -> None:
@@ -130,8 +130,8 @@ class GameOfLife:
 
         survival_minimum, survival_maximum = self.survival_interval
         birth_minimum, birth_maximum = self.birth_interval
-        current_state = 1 / (1 + np.exp(-self.k * (self.array - 0.5)))
-        neighbor_sums = self.calculate_neighbor_sum()
+        current_state = self.sigma(k=self.k, x=self.array, offset=0.5)
+        neighbor_sums = self.calculate_neighbor_sum().clip(0, 1)
         survival_conditions = self.calculate_transition_intervals(
             x=neighbor_sums,
             lower_threshold=survival_minimum,
@@ -146,24 +146,24 @@ class GameOfLife:
         change = self.calculate_cell_changes(
             current_state, survival_conditions, birth_conditions
         )
-        next_full_step = current_state + change * self.alive_factor  # .clip(-1, 2)
+        next_full_step = (current_state + change * self.alive_factor).clip(0, 1)
+        # next_full_step = current_state + change.clip(0, 1)
         next_intermediate_step = ((1 - self.alive_factor) * current_state) + (
             self.alive_factor * next_full_step
         )
-        self.array = next_full_step.clip(0, 1)
+        self.array = next_intermediate_step.clip(0, 1)
 
     def calculate_neighbor_sum(self) -> np.ndarray:
         size = 20
-        cell_radius = 1
+        cell_radius = 2
         outer_radius = 3 * cell_radius
         inner_kernel = self.gaussian_kernel(sigma=cell_radius, size=size)
         outer_kernel = self.gaussian_kernel(sigma=outer_radius, size=size)
-        outer_kernel *= 9
+        neighborhood_kernel = outer_kernel - 1 / 9 * inner_kernel
 
-        # outer_kernel = np.ones(shape=(3, 3))
+        # outer_kernel = np.ones(shape=(3, 3)) / 9
         # inner_kernel = np.array([[0, 0, 0], [0, 1, 0], [0, 0, 0]])
 
-        neighborhood_kernel = outer_kernel - inner_kernel
         neighbor_sum = scipy.ndimage.convolve(
             self.array, neighborhood_kernel, mode="wrap"
         )
@@ -173,8 +173,8 @@ class GameOfLife:
     def calculate_transition_intervals(
         self, x: np.ndarray, lower_threshold: float, upper_threshold: float
     ) -> np.ndarray:
-        sigmoid_up = self.sigma(x, lower_threshold)
-        sigmoid_down = self.sigma(x, upper_threshold)
+        sigmoid_up = self.sigma(self.k, x, lower_threshold)
+        sigmoid_down = self.sigma(self.k, x, upper_threshold)
         return sigmoid_up - sigmoid_down
 
     def gaussian_kernel(self, size: int, sigma: float) -> np.ndarray:
@@ -184,22 +184,22 @@ class GameOfLife:
         g = np.exp(-(x**2 + y**2) / (2 * sigma**2))
         return g / g.sum()
 
-    def sigma(self, x: np.ndarray, offset: float) -> np.ndarray:
-        result = 1 / (1 + np.exp(-self.k * (x - offset)))
+    def sigma(self, k: float, x: np.ndarray, offset: float) -> np.ndarray:
+        result = 1 / (1 + np.exp(-k * (x - offset)))
         return result
 
 
 def run():
     game = GameOfLife(
         square_size=5,
-        target_fps=5,
+        target_fps=50,
         # n_intermediate_time_steps=10,
         n_intermediate_alive_steps=1,
         random_state=32,
-        survival_interval=[1.5, 3.5],
-        birth_interval=[1.5, 3.5],
-        k=4,
-        density=0.5,
+        survival_interval=[1.5 / 8, 3.5 / 8],
+        birth_interval=[2.5 / 8, 3.5 / 8],
+        k=30,
+        density=0.6,
     )
     game.run_game()
 
