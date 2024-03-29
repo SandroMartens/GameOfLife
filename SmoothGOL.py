@@ -21,10 +21,8 @@ class GameOfLife:
         d2: float = 0.4375,
         alpha_m: float = 0.03,
         alpha_n: float = 0.15,
-        # survival_interval: list = [1.5, 3.5],
-        # birth_interval: list = [2.5, 3.5],
         density: float = 0.5,
-        k=10,
+        k: float = 10,
     ) -> None:
         """
         Initialize the GameOfLife object.
@@ -42,8 +40,7 @@ class GameOfLife:
         self.screen_height = 1000
         self.colormap = colormap
         self.density = density
-        self.time_factor = 1 / n_intermediate_time_steps
-        self.alive_factor = 1 / n_intermediate_alive_steps
+        self.dt = 1 / n_intermediate_time_steps
         self.n_intermediate_time_steps = n_intermediate_time_steps
         self.n_intermediate_alive_steps = n_intermediate_alive_steps
         self.n_squares_width = self.screen_width // self.square_size
@@ -57,11 +54,9 @@ class GameOfLife:
         self.d2 = d2
         self.alpha_m = alpha_m
         self.alpha_n = alpha_n
-        # self.survival_interval = survival_interval
-        # self.birth_interval = birth_interval
         self.random_state = random_state
         self.initialize_map()
-        self.k = k
+        self.k = 4 / k
 
     def run_game(self) -> None:
         """
@@ -135,11 +130,9 @@ class GameOfLife:
         """
         Apply the rules of Conway's Game of Life to update the given 2D array.
         """
-
-        # survival_minimum, survival_maximum = self.survival_interval
-        # birth_minimum, birth_maximum = self.birth_interval
-        current_state = self.sigma(k=self.k, x=self.array, offset=0.5)
-        neighbor_sums = self.calculate_neighbor_sum().clip(0, 1)
+        current_state = self.array
+        current_state = self.sigma(k=6, x=self.array, offset=0.5)
+        neighbor_sums = self.calculate_neighbor_sum(current_state).clip(0, 1)
         survival_conditions = self.calculate_transition_intervals(
             x=neighbor_sums,
             lower_threshold=self.b1,
@@ -156,23 +149,24 @@ class GameOfLife:
         )
 
         dx = 2 * next_full_step - 1
-        # dx = next_full_step - self.array
-        next_intermediate_step = self.array + self.time_factor * dx  # * self.array
+        dx = next_full_step - self.array
+        next_intermediate_step = self.array + self.dt * dx
         self.array = next_intermediate_step.clip(0, 1)
 
-    def calculate_neighbor_sum(self) -> np.ndarray:
-        size = 15
+    def calculate_neighbor_sum(self, current_state) -> np.ndarray:
+        size = 20
         cell_radius = 1
         outer_radius = 3 * cell_radius
         inner_kernel = self.gaussian_kernel(sigma=cell_radius, size=size)
         outer_kernel = self.gaussian_kernel(sigma=outer_radius, size=size)
         neighborhood_kernel = outer_kernel - 1 / 9 * inner_kernel
 
-        # outer_kernel = np.ones(shape=(3, 3)) / 9
+        # outer_kernel = np.ones(shape=(3, 3))
         # inner_kernel = np.array([[0, 0, 0], [0, 1, 0], [0, 0, 0]])
 
+        # neighborhood_kernel = (outer_kernel - inner_kernel) / 9
         neighbor_sum = scipy.ndimage.convolve(
-            self.array, neighborhood_kernel, mode="wrap"
+            current_state, neighborhood_kernel, mode="wrap"
         )
 
         return neighbor_sum
@@ -198,12 +192,12 @@ class GameOfLife:
 
 def run():
     game = GameOfLife(
-        square_size=3,
-        target_fps=200,
+        square_size=5,
+        target_fps=10,
         n_intermediate_time_steps=1,
         random_state=32,
-        k=50,
-        density=0.7,
+        k=0.1,
+        density=0.5,
     )
     game.run_game()
 
