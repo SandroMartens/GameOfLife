@@ -119,9 +119,9 @@ class GameOfLife:
         growing_cells = current_state * survival_conditions
         born_cells = (1 - current_state) * birth_conditions
 
-        change = (2 * (growing_cells + born_cells) - 1).clip(-1, 1)
+        # change = (2 * (growing_cells + born_cells) - 1).clip(-1, 1)
         # change = ((growing_cells + born_cells) - current_state).clip(-1, 1)
-        return change
+        return growing_cells + born_cells
 
     def calculate_next_step(self) -> None:
         """
@@ -143,18 +143,19 @@ class GameOfLife:
             upper_threshold=birth_maximum,
         )
 
-        change = self.calculate_cell_changes(
+        next_full_step = self.calculate_cell_changes(
             current_state, survival_conditions, birth_conditions
         )
-        next_full_step = (current_state + change * self.alive_factor).clip(0, 1)
-        # next_full_step = current_state + change.clip(0, 1)
+
+        # next_full_step = (current_state + change * self.alive_factor).clip(-0, 1)
+        # next_full_step = current_state + change  # .clip(0, 1)
         next_intermediate_step = ((1 - self.alive_factor) * current_state) + (
             self.alive_factor * next_full_step
         )
-        self.array = next_intermediate_step.clip(0, 1)
+        self.array = next_full_step.clip(0, 1)
 
     def calculate_neighbor_sum(self) -> np.ndarray:
-        size = 20
+        size = 15
         cell_radius = 2
         outer_radius = 3 * cell_radius
         inner_kernel = self.gaussian_kernel(sigma=cell_radius, size=size)
@@ -191,15 +192,15 @@ class GameOfLife:
 
 def run():
     game = GameOfLife(
-        square_size=5,
-        target_fps=50,
+        square_size=3,
+        target_fps=20,
         # n_intermediate_time_steps=10,
         n_intermediate_alive_steps=1,
         random_state=32,
         survival_interval=[1.5 / 8, 3.5 / 8],
         birth_interval=[2.5 / 8, 3.5 / 8],
-        k=30,
-        density=0.6,
+        k=25,
+        density=0.5,
     )
     game.run_game()
 
