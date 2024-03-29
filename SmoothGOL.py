@@ -15,8 +15,14 @@ class GameOfLife:
         n_intermediate_time_steps: int = 1,
         n_intermediate_alive_steps: int = 1,
         random_state: int | None = None,
-        survival_interval: list = [1.5, 3.5],
-        birth_interval: list = [2.5, 3.5],
+        b1: float = 0.1875,
+        b2: float = 0.4375,
+        d1: float = 0.3125,
+        d2: float = 0.4375,
+        alpha_m: float = 0.03,
+        alpha_n: float = 0.15,
+        # survival_interval: list = [1.5, 3.5],
+        # birth_interval: list = [2.5, 3.5],
         density: float = 0.5,
         k=10,
     ) -> None:
@@ -45,11 +51,16 @@ class GameOfLife:
         self.screen = pygame.display.set_mode((self.screen_width, self.screen_height))
         self.clock = pygame.time.Clock()
         self.running = True
-        self.survival_interval = survival_interval
-        self.birth_interval = birth_interval
+        self.b1 = b1
+        self.b2 = b2
+        self.d1 = d1
+        self.d2 = d2
+        self.alpha_m = alpha_m
+        self.alpha_n = alpha_n
+        # self.survival_interval = survival_interval
+        # self.birth_interval = birth_interval
         self.random_state = random_state
         self.initialize_map()
-        self.kernel = np.array([[1, 1, 1], [1, 0, 1], [1, 1, 1]])
         self.k = k
 
     def run_game(self) -> None:
@@ -58,10 +69,9 @@ class GameOfLife:
         """
         while self.running:
             self.handle_events()
-            for i in range(self.n_intermediate_time_steps):
-                self.calculate_next_step()
-                self.display_array()
-                self.clock.tick(self.target_fps)
+            self.calculate_next_step()
+            self.display_array()
+            self.clock.tick(self.target_fps)
 
         pygame.quit()
 
@@ -119,44 +129,40 @@ class GameOfLife:
         growing_cells = current_state * survival_conditions
         born_cells = (1 - current_state) * birth_conditions
 
-        # change = (2 * (growing_cells + born_cells) - 1).clip(-1, 1)
-        # change = ((growing_cells + born_cells) - current_state).clip(-1, 1)
-        return growing_cells + born_cells
+        return (growing_cells + born_cells).clip(0, 1)
 
     def calculate_next_step(self) -> None:
         """
         Apply the rules of Conway's Game of Life to update the given 2D array.
         """
 
-        survival_minimum, survival_maximum = self.survival_interval
-        birth_minimum, birth_maximum = self.birth_interval
+        # survival_minimum, survival_maximum = self.survival_interval
+        # birth_minimum, birth_maximum = self.birth_interval
         current_state = self.sigma(k=self.k, x=self.array, offset=0.5)
         neighbor_sums = self.calculate_neighbor_sum().clip(0, 1)
         survival_conditions = self.calculate_transition_intervals(
             x=neighbor_sums,
-            lower_threshold=survival_minimum,
-            upper_threshold=survival_maximum,
+            lower_threshold=self.b1,
+            upper_threshold=self.b2,
         )
         birth_conditions = self.calculate_transition_intervals(
             x=neighbor_sums,
-            lower_threshold=birth_minimum,
-            upper_threshold=birth_maximum,
+            lower_threshold=self.d1,
+            upper_threshold=self.d2,
         )
 
         next_full_step = self.calculate_cell_changes(
             current_state, survival_conditions, birth_conditions
         )
 
-        # next_full_step = (current_state + change * self.alive_factor).clip(-0, 1)
-        # next_full_step = current_state + change  # .clip(0, 1)
-        next_intermediate_step = ((1 - self.alive_factor) * current_state) + (
-            self.alive_factor * next_full_step
-        )
-        self.array = next_full_step.clip(0, 1)
+        dx = 2 * next_full_step - 1
+        # dx = next_full_step - self.array
+        next_intermediate_step = self.array + self.time_factor * dx  # * self.array
+        self.array = next_intermediate_step.clip(0, 1)
 
     def calculate_neighbor_sum(self) -> np.ndarray:
         size = 15
-        cell_radius = 2
+        cell_radius = 1
         outer_radius = 3 * cell_radius
         inner_kernel = self.gaussian_kernel(sigma=cell_radius, size=size)
         outer_kernel = self.gaussian_kernel(sigma=outer_radius, size=size)
@@ -193,14 +199,11 @@ class GameOfLife:
 def run():
     game = GameOfLife(
         square_size=3,
-        target_fps=20,
-        # n_intermediate_time_steps=10,
-        n_intermediate_alive_steps=1,
+        target_fps=200,
+        n_intermediate_time_steps=1,
         random_state=32,
-        survival_interval=[1.5 / 8, 3.5 / 8],
-        birth_interval=[2.5 / 8, 3.5 / 8],
-        k=25,
-        density=0.5,
+        k=50,
+        density=0.7,
     )
     game.run_game()
 
