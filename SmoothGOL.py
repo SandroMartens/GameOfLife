@@ -13,7 +13,6 @@ class GameOfLife:
         target_fps: int = 160,
         colormap: str = "magma",
         n_intermediate_time_steps: int = 1,
-        n_intermediate_alive_steps: int = 1,
         random_state: int | None = None,
         b1: float = 0.1875,
         b2: float = 0.4375,
@@ -21,28 +20,36 @@ class GameOfLife:
         d2: float = 0.4375,
         alpha_m: float = 0.03,
         alpha_n: float = 0.15,
-        density: float = 0.5,
+        init_density: float = 0.5,
         k: float = 10,
     ) -> None:
-        """
-        Initialize the GameOfLife object.
+        """Initialize the GameOfLife object with specified configurations.
 
         Parameters:
-        square_size (int): The size of each square in the array.
-        target_fps (int): The target frames per second for the game.
-        colormap (str): The colormap to use for displaying the game.
-        n_intermediate_steps (int): The number of intermediate steps between each full step of the game.
-        random_state (int or None): The random seed for generating the initial game state. If None, a random seed is used.
+        - square_size (int): The size of each square in the grid, affecting the resolution of the simulation.
+        - target_fps (int): The target frames per second for the game, controlling the speed of the simulation.
+        - colormap (str): The name of the matplotlib colormap used for displaying the game state.
+        - n_intermediate_time_steps (int): The number of intermediate steps to compute between each displayed frame, for smoother transitions.
+        - random_state (int | None): Seed for the random number generator for reproducible initial states. If None, a random seed is used.
+        - b1 (float): Lower threshold for the birth condition in the transition function.
+        - b2 (float): Upper threshold for the birth condition in the transition function.
+        - d1 (float): Lower threshold for the survival condition in the transition function.
+        - d2 (float): Upper threshold for the survival condition in the transition function.
+        - alpha_m (float): Parameter `alpha_m` influencing the model (not directly used in the provided code snippet).
+        - alpha_n (float): Parameter `alpha_n` influencing the model (not directly used in the provided code snippet).
+        - init_density (float): The initial density of alive cells in the game grid.
+        - k (float): Parameter influencing the steepness of the transition function between states.
+
+        Initializes the game window, internal state, and starts with a randomly generated map based on the given parameters.
         """
         self.square_size = square_size
         self.target_fps = target_fps
         self.screen_width = 1000
         self.screen_height = 1000
         self.colormap = colormap
-        self.density = density
+        self.init_density = init_density
         self.dt = 1 / n_intermediate_time_steps
         self.n_intermediate_time_steps = n_intermediate_time_steps
-        self.n_intermediate_alive_steps = n_intermediate_alive_steps
         self.n_squares_width = self.screen_width // self.square_size
         self.n_squares_height = self.screen_height // self.square_size
         self.screen = pygame.display.set_mode((self.screen_width, self.screen_height))
@@ -101,7 +108,7 @@ class GameOfLife:
         self.screen.blit(surface, (0, 0))
         pygame.display.flip()
 
-    def apply_colormap(self, resized_array) -> np.ndarray:
+    def apply_colormap(self, resized_array: np.ndarray) -> np.ndarray:
         """Convert values of each pixel to a color according to the selected
         matplotlib colormap."""
         colormap = plt.get_cmap(self.colormap)
@@ -114,12 +121,15 @@ class GameOfLife:
         """
         rng = np.random.default_rng(self.random_state)
         array = rng.random(size=(self.n_squares_width, self.n_squares_height))
-        mask = rng.random(size=array.shape) < self.density
-        array = np.where(mask, array, 0)
-        self.array = array
+        mask = rng.random(size=array.shape) < self.init_density
+        masked_array = np.where(mask, array, 0)
+        self.array = masked_array
 
-    def calculate_cell_changes(
-        self, current_state, survival_conditions, birth_conditions
+    def apply_transition_function(
+        self,
+        current_state: np.ndarray,
+        survival_conditions: np.ndarray,
+        birth_conditions: np.ndarray,
     ):
         growing_cells = current_state * survival_conditions
         born_cells = (1 - current_state) * birth_conditions
@@ -130,9 +140,8 @@ class GameOfLife:
         """
         Apply the rules of Conway's Game of Life to update the given 2D array.
         """
-        current_state = self.array
-        current_state = self.sigma(k=6, x=self.array, offset=0.5)
-        neighbor_sums = self.calculate_neighbor_sum(current_state).clip(0, 1)
+        aliveness = self.sigma(k=6, x=self.array, offset=0.5)
+        neighbor_sums = self.calculate_neighbor_sum(aliveness).clip(0, 1)
         survival_conditions = self.calculate_transition_intervals(
             x=neighbor_sums,
             lower_threshold=self.b1,
@@ -144,8 +153,10 @@ class GameOfLife:
             upper_threshold=self.d2,
         )
 
-        next_full_step = self.calculate_cell_changes(
-            current_state, survival_conditions, birth_conditions
+        next_full_step = self.apply_transition_function(
+            current_state=aliveness,
+            survival_conditions=survival_conditions,
+            birth_conditions=birth_conditions,
         )
 
         dx = 2 * next_full_step - 1
@@ -153,17 +164,16 @@ class GameOfLife:
         next_intermediate_step = self.array + self.dt * dx
         self.array = next_intermediate_step.clip(0, 1)
 
-    def calculate_neighbor_sum(self, current_state) -> np.ndarray:
-        size = 20
+    def calculate_neighbor_sum(self, current_state: np.ndarray) -> np.ndarray:
+        kernel_diameter = 10
         cell_radius = 1
         outer_radius = 3 * cell_radius
-        inner_kernel = self.gaussian_kernel(sigma=cell_radius, size=size)
-        outer_kernel = self.gaussian_kernel(sigma=outer_radius, size=size)
+        inner_kernel = self.gaussian_kernel(sigma=cell_radius, size=kernel_diameter)
+        outer_kernel = self.gaussian_kernel(sigma=outer_radius, size=kernel_diameter)
         neighborhood_kernel = outer_kernel - 1 / 9 * inner_kernel
 
         # outer_kernel = np.ones(shape=(3, 3))
         # inner_kernel = np.array([[0, 0, 0], [0, 1, 0], [0, 0, 0]])
-
         # neighborhood_kernel = (outer_kernel - inner_kernel) / 9
         neighbor_sum = scipy.ndimage.convolve(
             current_state, neighborhood_kernel, mode="wrap"
@@ -186,6 +196,7 @@ class GameOfLife:
         return g / g.sum()
 
     def sigma(self, k: float, x: np.ndarray, offset: float) -> np.ndarray:
+        """Apply a sigmoid function with a given"""
         result = 1 / (1 + np.exp(-k * (x - offset)))
         return result
 
@@ -196,8 +207,12 @@ def run():
         target_fps=10,
         n_intermediate_time_steps=1,
         random_state=32,
-        k=0.1,
-        density=0.5,
+        k=0.2,
+        init_density=0.5,
+        b1=0.278,
+        b2=0.365,
+        d1=0.267,
+        d2=0.445,
     )
     game.run_game()
 
