@@ -18,8 +18,8 @@ class GameOfLife:
         b2: float = 0.4375,
         d1: float = 0.3125,
         d2: float = 0.4375,
-        alpha_m: float = 0.03,
-        alpha_n: float = 0.15,
+        alpha_m: float = 0.15,
+        # alpha_n: float = 0.15,
         init_density: float = 0.5,
         k: float = 10,
     ) -> None:
@@ -60,22 +60,23 @@ class GameOfLife:
         self.d1 = d1
         self.d2 = d2
         self.alpha_m = alpha_m
-        self.alpha_n = alpha_n
+        # self.alpha_n = alpha_n
         self.random_state = random_state
-        self.k = 4 / k
+        self.k = k
 
     def run_game(self) -> None:
         """
         Run the game loop.
         """
         self.initialize_map()
-        while self.running:
-            self.handle_events()
-            self.calculate_next_step()
-            self.display_array()
-            self.clock.tick(self.target_fps)
-
-        pygame.quit()
+        try:
+            while self.running:
+                self.handle_events()
+                self.calculate_next_step()
+                self.display_array()
+                self.clock.tick(self.target_fps)
+        finally:
+            pygame.quit()
 
     def resize_image(self, array: np.ndarray) -> np.ndarray:
         """Resize and prepare the given array for display."""
@@ -130,17 +131,19 @@ class GameOfLife:
         current_state: np.ndarray,
         survival_conditions: np.ndarray,
         birth_conditions: np.ndarray,
-    ):
+    ) -> np.ndarray:
         growing_cells = current_state * survival_conditions
         born_cells = (1 - current_state) * birth_conditions
 
-        return (growing_cells + born_cells).clip(0, 1)
+        new_state = (growing_cells + born_cells).clip(0, 1)
+
+        return new_state
 
     def calculate_next_step(self) -> None:
         """
         Apply the rules of Conway's Game of Life to update the given 2D array.
         """
-        cell_radius = 2
+        cell_radius = 1
         neighboorhood_region_radius = 3 * cell_radius
         kernel_diameter_cell = 5 * cell_radius
         kernel_diameter_neighborhood_region = 5 * neighboorhood_region_radius
@@ -156,7 +159,7 @@ class GameOfLife:
 
         neighbor_sums -= 1 / 9 * cell_sums
 
-        aliveness = self.sigma(k=6, x=cell_sums, offset=0.5)
+        aliveness = self.sigma(k=self.alpha_m, x=cell_sums, offset=0.5)
 
         survival_conditions = self.calculate_transition_intervals(
             x=neighbor_sums,
@@ -177,12 +180,12 @@ class GameOfLife:
 
         dx = 2 * next_full_step - 1
         dx = next_full_step - self.array
-        dx = next_full_step - cell_sums
+        # dx = next_full_step - cell_sums
         next_intermediate_step = self.array + self.dt * dx
         self.array = next_intermediate_step.clip(0, 1)
 
     def apply_kernel(self, radius: float, size: float) -> np.ndarray:
-        kernel = self.gaussian_kernel(sigma=radius, size=size)
+        kernel = self.get_gaussian_kernel(sigma=radius, size=size)
         result = scipy.ndimage.convolve(self.array, kernel, mode="wrap")
         return result
 
@@ -193,7 +196,7 @@ class GameOfLife:
         sigmoid_down = self.sigma(self.k, x, upper_threshold)
         return sigmoid_up - sigmoid_down
 
-    def gaussian_kernel(self, size: int, sigma: float) -> np.ndarray:
+    def get_gaussian_kernel(self, size: int, sigma: float) -> np.ndarray:
         """Generates a 2D Gaussian kernel."""
         size = int(size) // 2
         x, y = np.mgrid[-size : size + 1, -size : size + 1]
@@ -202,7 +205,7 @@ class GameOfLife:
 
     def sigma(self, k: float, x: np.ndarray, offset: float) -> np.ndarray:
         """Apply a sigmoid function with a given"""
-        result = 1 / (1 + np.exp(-k * (x - offset)))
+        result = 1 / (1 + np.exp(-4 / k * (x - offset)))
         return result
 
 
@@ -210,14 +213,14 @@ def run():
     game = GameOfLife(
         square_size=5,
         target_fps=10,
-        n_intermediate_time_steps=1,
+        n_intermediate_time_steps=10,
         random_state=32,
-        k=0.15,
-        init_density=0.7,
-        # b1=0.278,
-        # b2=0.365,
-        # d1=0.267,
-        # d2=0.445,
+        k=0.07,
+        init_density=0.5,
+        b1=0.278,
+        b2=0.365,
+        d1=0.267,
+        d2=0.445,
     )
     game.run_game()
 
