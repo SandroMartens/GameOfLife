@@ -140,7 +140,7 @@ class GameOfLife:
         """
         Apply the rules of Conway's Game of Life to update the given 2D array.
         """
-        cell_radius = 1
+        cell_radius = 2
         neighboorhood_region_radius = 3 * cell_radius
         kernel_diameter_cell = 5 * cell_radius
         kernel_diameter_neighborhood_region = 5 * neighboorhood_region_radius
@@ -177,10 +177,11 @@ class GameOfLife:
 
         dx = 2 * next_full_step - 1
         dx = next_full_step - self.array
+        dx = next_full_step - cell_sums
         next_intermediate_step = self.array + self.dt * dx
         self.array = next_intermediate_step.clip(0, 1)
 
-    def apply_kernel(self, radius: float, size: int) -> np.ndarray:
+    def apply_kernel(self, radius: float, size: float) -> np.ndarray:
         kernel = self.gaussian_kernel(sigma=radius, size=size)
         result = scipy.ndimage.convolve(self.array, kernel, mode="wrap")
         return result
