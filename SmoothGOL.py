@@ -62,13 +62,13 @@ class GameOfLife:
         self.alpha_m = alpha_m
         self.alpha_n = alpha_n
         self.random_state = random_state
-        self.initialize_map()
         self.k = 4 / k
 
     def run_game(self) -> None:
         """
         Run the game loop.
         """
+        self.initialize_map()
         while self.running:
             self.handle_events()
             self.calculate_next_step()
@@ -140,8 +140,24 @@ class GameOfLife:
         """
         Apply the rules of Conway's Game of Life to update the given 2D array.
         """
-        aliveness = self.sigma(k=6, x=self.array, offset=0.5)
-        neighbor_sums = self.calculate_neighbor_sum(aliveness).clip(0, 1)
+        cell_radius = 1
+        neighboorhood_region_radius = 3 * cell_radius
+        kernel_diameter_cell = 5 * cell_radius
+        kernel_diameter_neighborhood_region = 5 * neighboorhood_region_radius
+
+        neighbor_sums = self.apply_kernel(
+            radius=neighboorhood_region_radius,
+            size=kernel_diameter_neighborhood_region,
+        ).clip(0, 1)
+        cell_sums = self.apply_kernel(
+            radius=cell_radius,
+            size=kernel_diameter_cell,
+        ).clip(0, 1)
+
+        neighbor_sums -= 1 / 9 * cell_sums
+
+        aliveness = self.sigma(k=6, x=cell_sums, offset=0.5)
+
         survival_conditions = self.calculate_transition_intervals(
             x=neighbor_sums,
             lower_threshold=self.b1,
@@ -164,22 +180,10 @@ class GameOfLife:
         next_intermediate_step = self.array + self.dt * dx
         self.array = next_intermediate_step.clip(0, 1)
 
-    def calculate_neighbor_sum(self, current_state: np.ndarray) -> np.ndarray:
-        kernel_diameter = 10
-        cell_radius = 1
-        outer_radius = 3 * cell_radius
-        inner_kernel = self.gaussian_kernel(sigma=cell_radius, size=kernel_diameter)
-        outer_kernel = self.gaussian_kernel(sigma=outer_radius, size=kernel_diameter)
-        neighborhood_kernel = outer_kernel - 1 / 9 * inner_kernel
-
-        # outer_kernel = np.ones(shape=(3, 3))
-        # inner_kernel = np.array([[0, 0, 0], [0, 1, 0], [0, 0, 0]])
-        # neighborhood_kernel = (outer_kernel - inner_kernel) / 9
-        neighbor_sum = scipy.ndimage.convolve(
-            current_state, neighborhood_kernel, mode="wrap"
-        )
-
-        return neighbor_sum
+    def apply_kernel(self, radius: float, size: int) -> np.ndarray:
+        kernel = self.gaussian_kernel(sigma=radius, size=size)
+        result = scipy.ndimage.convolve(self.array, kernel, mode="wrap")
+        return result
 
     def calculate_transition_intervals(
         self, x: np.ndarray, lower_threshold: float, upper_threshold: float
@@ -207,12 +211,12 @@ def run():
         target_fps=10,
         n_intermediate_time_steps=1,
         random_state=32,
-        k=0.2,
-        init_density=0.5,
-        b1=0.278,
-        b2=0.365,
-        d1=0.267,
-        d2=0.445,
+        k=0.15,
+        init_density=0.7,
+        # b1=0.278,
+        # b2=0.365,
+        # d1=0.267,
+        # d2=0.445,
     )
     game.run_game()
 
