@@ -1,3 +1,4 @@
+import scipy.ndimage
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
@@ -6,6 +7,7 @@ import scipy
 
 
 class GameOfLife:
+    """The GameOfLife class represents a simulation of Conway's Game of Life."""
 
     def __init__(
         self,
@@ -68,7 +70,7 @@ class GameOfLife:
         """
         Run the game loop.
         """
-        self.initialize_map()
+        self.generate_initial_state()
         try:
             while self.running:
                 self.handle_events()
@@ -116,9 +118,9 @@ class GameOfLife:
         rgb_array = colormap(resized_array)[:, :, :3] * 255
         return rgb_array
 
-    def initialize_map(self) -> None:
+    def generate_initial_state(self) -> None:
         """
-        Initialize a binary array with random values.
+        Generate the initial state of the game.
         """
         rng = np.random.default_rng(self.random_state)
         array = rng.random(size=(self.n_squares_width, self.n_squares_height))
@@ -126,7 +128,7 @@ class GameOfLife:
         masked_array = np.where(mask, array, 0)
         self.array = masked_array
 
-    def apply_transition_function(
+    def calculate_new_state(
         self,
         current_state: np.ndarray,
         survival_conditions: np.ndarray,
@@ -139,11 +141,18 @@ class GameOfLife:
 
         return new_state
 
+    def calculate_conditions(
+        self, x: np.ndarray, lower_threshold: float, upper_threshold: float
+    ) -> np.ndarray:
+        sigmoid_up = self.apply_sigmoid_function(self.k, x, lower_threshold)
+        sigmoid_down = self.apply_sigmoid_function(self.k, x, upper_threshold)
+        return sigmoid_up - sigmoid_down
+
     def calculate_next_step(self) -> None:
         """
         Apply the rules of Conway's Game of Life to update the given 2D array.
         """
-        cell_radius = 1
+        cell_radius = 2
         neighboorhood_region_radius = 3 * cell_radius
         kernel_diameter_cell = 5 * cell_radius
         kernel_diameter_neighborhood_region = 5 * neighboorhood_region_radius
@@ -159,20 +168,20 @@ class GameOfLife:
 
         neighbor_sums -= 1 / 9 * cell_sums
 
-        aliveness = self.sigma(k=self.alpha_m, x=cell_sums, offset=0.5)
+        aliveness = self.apply_sigmoid_function(k=self.alpha_m, x=cell_sums, offset=0.5)
 
-        survival_conditions = self.calculate_transition_intervals(
+        survival_conditions = self.calculate_conditions(
             x=neighbor_sums,
             lower_threshold=self.b1,
             upper_threshold=self.b2,
         )
-        birth_conditions = self.calculate_transition_intervals(
+        birth_conditions = self.calculate_conditions(
             x=neighbor_sums,
             lower_threshold=self.d1,
             upper_threshold=self.d2,
         )
 
-        next_full_step = self.apply_transition_function(
+        next_full_step = self.calculate_new_state(
             current_state=aliveness,
             survival_conditions=survival_conditions,
             birth_conditions=birth_conditions,
@@ -192,8 +201,8 @@ class GameOfLife:
     def calculate_transition_intervals(
         self, x: np.ndarray, lower_threshold: float, upper_threshold: float
     ) -> np.ndarray:
-        sigmoid_up = self.sigma(self.k, x, lower_threshold)
-        sigmoid_down = self.sigma(self.k, x, upper_threshold)
+        sigmoid_up = self.apply_sigmoid_function(self.k, x, lower_threshold)
+        sigmoid_down = self.apply_sigmoid_function(self.k, x, upper_threshold)
         return sigmoid_up - sigmoid_down
 
     def get_gaussian_kernel(self, size: int, sigma: float) -> np.ndarray:
@@ -203,7 +212,9 @@ class GameOfLife:
         g = np.exp(-(x**2 + y**2) / (2 * sigma**2))
         return g / g.sum()
 
-    def sigma(self, k: float, x: np.ndarray, offset: float) -> np.ndarray:
+    def apply_sigmoid_function(
+        self, k: float, x: np.ndarray, offset: float
+    ) -> np.ndarray:
         """Apply a sigmoid function with a given"""
         result = 1 / (1 + np.exp(-4 / k * (x - offset)))
         return result
@@ -213,14 +224,14 @@ def run():
     game = GameOfLife(
         square_size=5,
         target_fps=10,
-        n_intermediate_time_steps=10,
+        n_intermediate_time_steps=1,
         random_state=32,
-        k=0.07,
-        init_density=0.5,
-        b1=0.278,
-        b2=0.365,
-        d1=0.267,
-        d2=0.445,
+        k=0.2,
+        init_density=0.6,
+        # b1=0.278,
+        # b2=0.365,
+        # d1=0.267,
+        # d2=0.445,
     )
     game.run_game()
 
