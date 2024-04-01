@@ -1,9 +1,9 @@
-import scipy.ndimage
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 import pygame
 import scipy
+import scipy.ndimage
 
 
 class GameOfLife:
@@ -12,7 +12,7 @@ class GameOfLife:
     def __init__(
         self,
         square_size: int = 5,
-        target_fps: int = 160,
+        target_fps: int = 10,
         colormap: str = "magma",
         n_intermediate_time_steps: int = 1,
         random_state: int | None = None,
@@ -21,9 +21,10 @@ class GameOfLife:
         d1: float = 0.3125,
         d2: float = 0.4375,
         alpha_m: float = 0.15,
+        cell_size: float = 1,
         # alpha_n: float = 0.15,
         init_density: float = 0.5,
-        k: float = 10,
+        k: float = 0.18,
     ) -> None:
         """Initialize the GameOfLife object with specified configurations.
 
@@ -61,6 +62,7 @@ class GameOfLife:
         self.b2 = b2
         self.d1 = d1
         self.d2 = d2
+        self.cell_size = cell_size
         self.alpha_m = alpha_m
         # self.alpha_n = alpha_n
         self.random_state = random_state
@@ -99,6 +101,16 @@ class GameOfLife:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.running = False
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_r:  # If 'R' key is pressed
+                    self.restart_simulation()
+
+    def restart_simulation(self) -> None:
+        """
+        Restart the simulation by reinitializing the game state.
+        """
+        self.generate_initial_state()  # Regenerate the initial state
+        self.running = True
 
     def display_array(self) -> None:
         """
@@ -152,7 +164,7 @@ class GameOfLife:
         """
         Apply the rules of Conway's Game of Life to update the given 2D array.
         """
-        cell_radius = 2
+        cell_radius = self.cell_size
         neighboorhood_region_radius = 3 * cell_radius
         kernel_diameter_cell = 5 * cell_radius
         kernel_diameter_neighborhood_region = 5 * neighboorhood_region_radius
@@ -166,7 +178,7 @@ class GameOfLife:
             size=kernel_diameter_cell,
         ).clip(0, 1)
 
-        neighbor_sums -= 1 / 9 * cell_sums
+        neighbor_sums = (neighbor_sums - 1 / 9 * cell_sums) / (8 / 9)
 
         aliveness = self.apply_sigmoid_function(k=self.alpha_m, x=cell_sums, offset=0.5)
 
@@ -188,8 +200,8 @@ class GameOfLife:
         )
 
         dx = 2 * next_full_step - 1
-        dx = next_full_step - self.array
-        # dx = next_full_step - cell_sums
+        # dx = next_full_step - self.array
+        dx = next_full_step - cell_sums
         next_intermediate_step = self.array + self.dt * dx
         self.array = next_intermediate_step.clip(0, 1)
 
@@ -220,14 +232,15 @@ class GameOfLife:
         return result
 
 
-def run():
+def main():
     game = GameOfLife(
         square_size=5,
-        target_fps=10,
+        target_fps=50,
         n_intermediate_time_steps=1,
         random_state=32,
-        k=0.2,
+        k=0.1,
         init_density=0.6,
+        cell_size=1,
         # b1=0.278,
         # b2=0.365,
         # d1=0.267,
@@ -236,4 +249,5 @@ def run():
     game.run_game()
 
 
-run()
+if __name__ == "__main__":
+    main()
