@@ -67,6 +67,7 @@ class GameOfLife:
         # self.alpha_n = alpha_n
         self.random_state = random_state
         self.k = k
+        self.k_slider = Slider(50, 950, 200, 20, 0.01, 1.0, self.k, "k")
 
     def run_game(self) -> None:
         """
@@ -104,6 +105,7 @@ class GameOfLife:
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_r:  # If 'R' key is pressed
                     self.restart_simulation()
+            self.k_slider.handle_event(event)
 
     def restart_simulation(self) -> None:
         """
@@ -121,6 +123,9 @@ class GameOfLife:
         rgb_array = self.apply_colormap(resized_array)
         surface = pygame.surfarray.make_surface(rgb_array)
         self.screen.blit(surface, (0, 0))
+        self.k_slider.draw(self.screen)
+        self.k = self.k_slider.val
+
         pygame.display.flip()
 
     def apply_colormap(self, resized_array: np.ndarray) -> np.ndarray:
@@ -230,6 +235,41 @@ class GameOfLife:
         """Apply a sigmoid function with a given"""
         result = 1 / (1 + np.exp(-4 / k * (x - offset)))
         return result
+
+
+class Slider:
+    def __init__(self, x, y, w, h, min_val, max_val, initial_val, name):
+        self.rect = pygame.Rect(x, y, w, h)  # Slider position and size
+        self.min_val = min_val
+        self.max_val = max_val
+        self.val = initial_val  # Current value
+        self.name = name
+        self.is_held = False  # Whether the slider is being dragged
+
+    def draw(self, screen):
+        # Draw the slider track
+        pygame.draw.rect(screen, (100, 100, 100), self.rect)
+        # Draw the slider handle
+        handle_x = (self.val - self.min_val) / (
+            self.max_val - self.min_val
+        ) * self.rect.width + self.rect.x
+        pygame.draw.rect(
+            screen, (200, 200, 200), (handle_x - 10, self.rect.y, 20, self.rect.height)
+        )
+
+    def handle_event(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if self.rect.collidepoint(event.pos):
+                self.is_held = True
+        elif event.type == pygame.MOUSEBUTTONUP:
+            self.is_held = False
+        elif event.type == pygame.MOUSEMOTION and self.is_held:
+            # Update the slider value based on mouse position
+            mouse_x, _ = event.pos
+            self.val = (mouse_x - self.rect.x) / self.rect.width * (
+                self.max_val - self.min_val
+            ) + self.min_val
+            self.val = max(min(self.val, self.max_val), self.min_val)  # Clamp value
 
 
 def main():
