@@ -14,12 +14,14 @@ class SmoothGameOfLife:
         square_size: int = 5,
         target_fps: int = 10,
         colormap: str = "magma",
-        n_intermediate_time_steps: int = 1,
+        dt: float = 1,
         random_state: int | None = None,
         b1: float = 0.1875,
         b2: float = 0.4375,
         d1: float = 0.3125,
         d2: float = 0.4375,
+        screen_width: int = 1000,
+        screen_height: int = 1000,
         alpha_m: float = 0.15,
         cell_size: float = 1,
         # alpha_n: float = 0.15,
@@ -47,16 +49,14 @@ class SmoothGameOfLife:
         """
         self.square_size = square_size
         self.target_fps = target_fps
-        self.screen_width = 1000
-        self.screen_height = 1000
+        self.screen_width = screen_width
+        self.screen_height = screen_height
         self.colormap = colormap
         self.init_density = init_density
-        self.dt = 1 / n_intermediate_time_steps
-        self.n_intermediate_time_steps = n_intermediate_time_steps
+        self.dt = dt
+        self.n_intermediate_time_steps = dt
         self.n_squares_width = self.screen_width // self.square_size
         self.n_squares_height = self.screen_height // self.square_size
-        self.screen = pygame.display.set_mode((self.screen_width, self.screen_height))
-        self.clock = pygame.time.Clock()
         self.running = True
         self.b1 = b1
         self.b2 = b2
@@ -139,6 +139,8 @@ class SmoothGameOfLife:
         """
         Generate the initial state of the game.
         """
+        self.screen = pygame.display.set_mode((self.screen_width, self.screen_height))
+        self.clock = pygame.time.Clock()
         rng = np.random.default_rng(self.random_state)
         array = rng.random(size=(self.n_squares_width, self.n_squares_height))
         mask = rng.random(size=array.shape) < self.init_density
@@ -274,13 +276,13 @@ class Slider:
 
 def main():
     game = SmoothGameOfLife(
-        square_size=5,
-        target_fps=50,
-        n_intermediate_time_steps=1,
-        random_state=32,
-        k=0.1,
-        init_density=0.6,
-        cell_size=1,
+        # square_size=5,
+        # target_fps=50,
+        # dt=0.2,
+        # random_state=32,
+        # k=0.1,
+        # init_density=0.5,
+        # cell_size=1,
         # b1=0.278,
         # b2=0.365,
         # d1=0.267,
