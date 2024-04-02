@@ -1,14 +1,15 @@
 import sys
 
 import numpy as np
-from PySide6.QtCore import QTimer
+from PySide6.QtCore import QTimer, Qt
 from PySide6.QtGui import QImage, QPixmap
-from PySide6.QtWidgets import QApplication, QLabel
+from PySide6.QtWidgets import QApplication, QLabel, QSlider, QVBoxLayout, QWidget
 
 
 class AnimatedLabel(QLabel):
     def __init__(self, width, height):
         super().__init__()
+        self.layout = QVBoxLayout(self)
         self.width = width
         self.height = height
         self.frame_count = 0
@@ -20,6 +21,7 @@ class AnimatedLabel(QLabel):
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_animation)
         self.timer.start(10)  # Update interval in milliseconds
+        self.resize(width, height)
 
     def update_animation(self):
         # Update your numpy array here
@@ -39,11 +41,27 @@ class AnimatedLabel(QLabel):
         self.setPixmap(pixmap)
 
 
+class AnimationWidget(QWidget):
+    def __init__(self, width, height):
+        super().__init__()
+        self.layout = QVBoxLayout(self)
+
+        self.animatedLabel = AnimatedLabel(width, height)
+        self.layout.addWidget(self.animatedLabel)
+
+        self.slider = QSlider(Qt.Orientation.Horizontal)
+        self.slider.setMinimum(1)  # Minimum interval of 1 ms
+        self.slider.setMaximum(1000)  # Maximum interval of 1000 ms
+        self.slider.setValue(10)  # Default value
+        self.slider.valueChanged.connect(self.update_interval)
+        self.layout.addWidget(self.slider)
+
+    def update_interval(self, value):
+        self.animatedLabel.timer.setInterval(value)
+
+
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-
-    # Create an instance of the AnimatedLabel
-    animated_label = AnimatedLabel(200, 200)
-    animated_label.show()
-
-    sys.exit(app.exec_())
+    mainWidget = AnimationWidget(200, 200)
+    mainWidget.show()
+    sys.exit(app.exec())
