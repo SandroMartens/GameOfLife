@@ -1,94 +1,49 @@
-import pygame
 import sys
 
-# Initialize Pygame
-pygame.init()
-
-# Screen dimensions
-screen_width = 600
-screen_height = 400
-screen = pygame.display.set_mode((screen_width, screen_height))
-
-# Colors
-WHITE = (255, 255, 255)
-GREEN = (0, 255, 0)
-BLACK = (0, 0, 0)
+import numpy as np
+from PySide6.QtCore import QTimer
+from PySide6.QtGui import QImage, QPixmap
+from PySide6.QtWidgets import QApplication, QLabel
 
 
-# Button class
-class Button:
-    def __init__(self, color, x, y, width, height, text=""):
-        self.color = color
-        self.x = x
-        self.y = y
+class AnimatedLabel(QLabel):
+    def __init__(self, width, height):
+        super().__init__()
         self.width = width
         self.height = height
-        self.text = text
+        self.frame_count = 0
 
-    def draw(self, screen, outline=None):
-        if outline:
-            pygame.draw.rect(
-                screen,
-                outline,
-                (self.x - 2, self.y - 2, self.width + 4, self.height + 4),
-                0,
-            )
+        # Initialize your numpy array with the desired shape and dtype
+        self.data = np.zeros((height, width, 3), dtype=np.uint8)
 
-        pygame.draw.rect(
-            screen, self.color, (self.x, self.y, self.width, self.height), 0
+        # Setup the timer
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.update_animation)
+        self.timer.start(10)  # Update interval in milliseconds
+
+    def update_animation(self):
+        # Update your numpy array here
+        # Example: Create a moving gradient
+        self.data[:] = (
+            self.frame_count % 255,
+            self.frame_count * 2 % 255,
+            self.frame_count * 3 % 255,
         )
+        self.frame_count += 1
 
-        if self.text != "":
-            font = pygame.font.SysFont("comicsans", 30)
-            text = font.render(self.text, 1, BLACK)
-            screen.blit(
-                text,
-                (
-                    self.x + (self.width / 2 - text.get_width() / 2),
-                    self.y + (self.height / 2 - text.get_height() / 2),
-                ),
-            )
+        # Convert numpy array to QImage and then to QPixmap
+        image = QImage(self.data.data, self.width, self.height, QImage.Format_RGB888)
+        pixmap = QPixmap.fromImage(image)
 
-    def is_over(self, pos):
-        # Pos is the mouse position or a tuple of (x,y) coordinates
-        if (
-            self.x < pos[0] < self.x + self.width
-            and self.y < pos[1] < self.y + self.height
-        ):
-            return True
-        return False
-
-
-# Main loop
-def main():
-    button = Button(GREEN, 150, 100, 250, 100, "Change Value")
-    parameter_value = 0
-
-    running = True
-    while running:
-        screen.fill(WHITE)
-        for event in pygame.event.get():
-            pos = pygame.mouse.get_pos()
-
-            if event.type == pygame.QUIT:
-                running = False
-
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                if button.is_over(pos):
-                    parameter_value += 1  # Change parameter value
-
-        button.draw(screen, BLACK)
-
-        # Display the parameter value
-        font = pygame.font.SysFont("comicsans", 30)
-        value_text = font.render("Value: " + str(parameter_value), 1, BLACK)
-        screen.blit(value_text, (220, 250))
-
-        pygame.display.update()
-
-    pygame.quit()
-    sys.exit()
+        # Display the QPixmap in the QLabel
+        self.setPixmap(pixmap)
 
 
 if __name__ == "__main__":
-    main()
+    app = QApplication(sys.argv)
+
+    # Create an instance of the AnimatedLabel
+    animated_label = AnimatedLabel(200, 200)
+    animated_label.show()
+
+    sys.exit(app.exec_())

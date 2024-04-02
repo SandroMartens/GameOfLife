@@ -6,7 +6,7 @@ import scipy
 import scipy.ndimage
 
 
-class GameOfLife:
+class SmoothGameOfLife:
     """The GameOfLife class represents a simulation of Conway's Game of Life."""
 
     def __init__(
@@ -273,7 +273,7 @@ class Slider:
 
 
 def main():
-    game = GameOfLife(
+    game = SmoothGameOfLife(
         square_size=5,
         target_fps=50,
         n_intermediate_time_steps=1,
