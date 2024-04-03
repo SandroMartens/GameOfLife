@@ -72,7 +72,16 @@ class AnimatedLabel(QLabel):
 
 
 class AnimationWidget(QWidget):
-    def __init__(self, width, height):
+    """
+    A QWidget subclass that displays an animated label and a set of sliders.
+    Allows the user to interactively adjust the parameters of the animation.
+    """
+
+    def __init__(self, width: int, height: int):
+        """
+        Initializes the widget with the specified width and height.
+        Creates an instance of the AnimatedLabel class and a set of sliders.
+        """
         super().__init__()
         self.layout = QVBoxLayout(self)
 
@@ -81,7 +90,6 @@ class AnimationWidget(QWidget):
 
         self.sliders = {}
         self.create_slider("k", 0, 100, 17, self.update_parameter)
-        # Example for another parameter
         self.create_slider("b1", 0, 100, 18, self.update_parameter)
         self.create_slider("b2", 0, 100, 43, self.update_parameter)
         self.create_slider("d1", 0, 100, 31, self.update_parameter)
@@ -89,10 +97,15 @@ class AnimationWidget(QWidget):
         self.create_slider("alpha_m", 1, 100, 18, self.update_parameter)
         self.create_slider("dt", 0, 100, 99, self.update_parameter)
 
-    def create_slider(self, param_name, min_val, max_val, default_val, callback):
+    def create_slider(
+        self, param_name: str, min_val: int, max_val: int, default_val: int, callback
+    ):
+        """
+        Creates a slider with the specified parameters and adds it to the layout.
+        Also creates a QLabel to display the slider's current value.
+        """
         slider = QSlider(Qt.Orientation.Horizontal)
-        slider.setMinimum(min_val)
-        slider.setMaximum(max_val)
+        slider.setRange(min_val, max_val)
         slider.setValue(default_val)
         slider.valueChanged.connect(callback)
         self.layout.addWidget(slider)
@@ -104,7 +117,11 @@ class AnimationWidget(QWidget):
         # Store the slider and its label in the dictionary
         self.sliders[param_name] = (slider, sliderValueLabel)
 
-    def update_parameter(self, value):
+    def update_parameter(self, value: int):
+        """
+        Updates the parameter of the AnimatedLabel object based on the value of the slider.
+        Also updates the slider's label.
+        """
         # Find out which slider was changed
         sender = self.sender()
         for param_name, (slider, label) in self.sliders.items():
