@@ -204,7 +204,7 @@ class SmoothGameOfLife:
 
         dx = 2 * next_full_step - 1
         dx = next_full_step - self.array
-        # dx = next_full_step - cell_sums
+        dx = next_full_step - cell_sums
         next_intermediate_step = self.array + self.dt * dx
         self.array = next_intermediate_step.clip(0, 1)
 
@@ -274,7 +274,7 @@ def main():
     game = SmoothGameOfLife(
         # target_fps=50,
         # dt=0.2,
-        # random_state=32,
+        random_state=32,
         # k=0.1,
         # init_density=0.5,
         # cell_size=1,

@@ -18,14 +18,16 @@ class AnimatedLabel(QLabel):
         self.field_height = 200
         self.field_width = 200
         self.gol = SmoothGameOfLife(
-            field_height=self.field_height, field_width=self.field_width
+            field_height=self.field_height,
+            field_width=self.field_width,
+            random_state=32,
         )
         self.gol.generate_initial_state()
 
         # Setup the timer
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_animation)
-        self.timer.start(10)  # Update interval in milliseconds
+        self.timer.start(100)  # Update interval in milliseconds
         self.resize(width, height)
 
     def update_animation(self):
@@ -60,25 +62,19 @@ class AnimationWidget(QWidget):
         self.layout.addWidget(self.animatedLabel)
 
         self.slider = QSlider(Qt.Orientation.Horizontal)
-        self.slider.setMinimum(1)  # Minimum interval of 1 ms
-        self.slider.setMaximum(1000)  # Maximum interval of 1000 ms
-        self.slider.setValue(10)  # Default value
+        self.slider.setMinimum(0)  # Minimum interval of 1 ms
+        self.slider.setMaximum(100)  # Maximum interval of 1000 ms
+        self.slider.setValue(17)  # Default value
         self.slider.valueChanged.connect(self.update_interval)
         self.layout.addWidget(self.slider)
 
         # Create a QLabel to display the slider's current value
-        self.sliderValueLabel = QLabel(f"Interval: {self.slider.value()} ms")
+        self.sliderValueLabel = QLabel(f"k: {self.slider.value()}")
         self.layout.addWidget(self.sliderValueLabel)
 
-        # Connect the slider's valueChanged signal to update the QLabel
-        self.slider.valueChanged.connect(self.update_slider_value_label)
-
     def update_interval(self, value):
-        self.animatedLabel.timer.setInterval(value)
-
-    def update_slider_value_label(self, value):
-        # Update the QLabel text with the current slider value
-        self.sliderValueLabel.setText(f"Interval: {value} ms")
+        self.animatedLabel.gol.k = value / 100
+        self.sliderValueLabel.setText(f"k: {value / 100}")
 
 
 if __name__ == "__main__":
