@@ -5,18 +5,28 @@ from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QImage, QPixmap
 from PySide6.QtWidgets import (
     QApplication,
+    QComboBox,
     QLabel,
     QSlider,
     QVBoxLayout,
     QWidget,
-    QComboBox,
 )
 
 from SmoothGOL import SmoothGameOfLife
 
 
 class AnimatedLabel(QLabel):
-    def __init__(self, width: int, height: int):
+    def __init__(
+        self,
+        width: int,
+        height: int,
+        field_height: int = 200,
+        field_width: int = 200,
+        cell_size: int = 1,
+        init_density: float = 0.6,
+        random_state: int = 32,
+        timer_interval: int = 100,
+    ):
         """
         Initializes the AnimatedLabel object with the specified width and height.
         Sets up the layout, frame count, field height, field width, and the SmoothGameOfLife object.
@@ -25,20 +35,26 @@ class AnimatedLabel(QLabel):
         Args:
             width (int): The width of the label.
             height (int): The height of the label.
+            field_height (int): The height of the field.
+            field_width (int): The width of the field.
+            cell_size (int): The size of each cell.
+            init_density (float): The initial density of live cells.
+            random_state (int): The random state for generating initial state.
+            timer_interval (int): The interval for updating the animation in milliseconds.
         """
         super().__init__()
         self.layout = QVBoxLayout(self)
         self.width = width
         self.height = height
         self.frame_count = 0
-        self.field_height = 200
-        self.field_width = 200
+        self.field_height = field_height
+        self.field_width = field_width
         self.gol = SmoothGameOfLife(
             field_height=self.field_height,
             field_width=self.field_width,
-            cell_size=3,
-            init_density=0.6,
-            random_state=32,
+            cell_size=cell_size,
+            init_density=init_density,
+            random_state=random_state,
         )
         self.gol.generate_initial_state()
 
@@ -52,7 +68,7 @@ class AnimatedLabel(QLabel):
         # Setup the timer
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_animation)
-        self.timer.start(100)  # Update interval in milliseconds
+        self.timer.start(timer_interval)  # Update interval in milliseconds
         self.resize(width, height)
 
     def change_mode(self, index):
