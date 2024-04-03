@@ -3,7 +3,14 @@ import sys
 import numpy as np
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QImage, QPixmap
-from PySide6.QtWidgets import QApplication, QLabel, QSlider, QVBoxLayout, QWidget
+from PySide6.QtWidgets import (
+    QApplication,
+    QLabel,
+    QSlider,
+    QVBoxLayout,
+    QWidget,
+    QComboBox,
+)
 
 from SmoothGOL import SmoothGameOfLife
 
@@ -29,15 +36,30 @@ class AnimatedLabel(QLabel):
         self.gol = SmoothGameOfLife(
             field_height=self.field_height,
             field_width=self.field_width,
+            cell_size=3,
+            init_density=0.6,
             random_state=32,
         )
         self.gol.generate_initial_state()
+
+        # Setup the dropdown menu for mode selection
+        self.mode_selector = QComboBox(self)
+        self.mode_selector.addItem("Mode 1")
+        self.mode_selector.addItem("Mode 2")
+        self.mode_selector.addItem("Mode 3")
+        self.mode_selector.currentIndexChanged.connect(self.change_mode)
 
         # Setup the timer
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_animation)
         self.timer.start(100)  # Update interval in milliseconds
         self.resize(width, height)
+
+    def change_mode(self, index):
+        """
+        Change the simulation mode based on the selected index from the dropdown.
+        """
+        self.gol.mode = index
 
     def update_animation(self):
         """
@@ -97,8 +119,8 @@ class AnimationWidget(QWidget):
             {
                 "param_name": "alpha_m",
                 "min_val": 1,
-                "max_val": 1000,
-                "default_val": 1000,
+                "max_val": 100,
+                "default_val": 15,
             },
             {"param_name": "dt", "min_val": 0, "max_val": 100, "default_val": 99},
         ]

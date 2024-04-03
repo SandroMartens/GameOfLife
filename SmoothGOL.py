@@ -26,6 +26,7 @@ class SmoothGameOfLife:
         alpha_m: float = 0.15,
         cell_size: float = 1,
         init_density: float = 0.5,
+        mode: int = 1,
         k: float = 0.18,
     ) -> None:
         """Initialize the GameOfLife object with specified configurations.
@@ -63,6 +64,7 @@ class SmoothGameOfLife:
         self.d2 = d2
         self.cell_size = cell_size
         self.alpha_m = alpha_m
+        self.mode = mode
         # self.alpha_n = alpha_n
         self.random_state = random_state
         self.k = k
@@ -204,9 +206,12 @@ class SmoothGameOfLife:
             birth_conditions=birth_conditions,
         )
 
-        dx = 2 * next_full_step - 1
-        dx = next_full_step - self.array
-        dx = next_full_step - cell_sums
+        if self.mode == 1:
+            dx = next_full_step - self.array
+        elif self.mode == 2:
+            dx = 2 * next_full_step - 1
+        else:
+            dx = next_full_step - cell_sums
         next_intermediate_step = self.array + self.dt * dx
         self.array = next_intermediate_step.clip(0, 1)
 
@@ -278,8 +283,8 @@ def main():
         # dt=0.2,
         random_state=32,
         # k=0.1,
-        # init_density=0.5,
-        # cell_size=1,
+        init_density=0.7,
+        cell_size=3,
         # b1=0.278,
         # b2=0.365,
         # d1=0.267,
