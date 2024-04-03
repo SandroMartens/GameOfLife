@@ -88,14 +88,29 @@ class AnimationWidget(QWidget):
         self.animatedLabel = AnimatedLabel(width, height)
         self.layout.addWidget(self.animatedLabel)
 
+        sliders_params = [
+            {"param_name": "k", "min_val": 0, "max_val": 100, "default_val": 17},
+            {"param_name": "b1", "min_val": 0, "max_val": 100, "default_val": 18},
+            {"param_name": "b2", "min_val": 0, "max_val": 100, "default_val": 43},
+            {"param_name": "d1", "min_val": 0, "max_val": 100, "default_val": 31},
+            {"param_name": "d2", "min_val": 0, "max_val": 100, "default_val": 43},
+            {
+                "param_name": "alpha_m",
+                "min_val": 1,
+                "max_val": 1000,
+                "default_val": 1000,
+            },
+            {"param_name": "dt", "min_val": 0, "max_val": 100, "default_val": 99},
+        ]
         self.sliders = {}
-        self.create_slider("k", 0, 100, 17, self.update_parameter)
-        self.create_slider("b1", 0, 100, 18, self.update_parameter)
-        self.create_slider("b2", 0, 100, 43, self.update_parameter)
-        self.create_slider("d1", 0, 100, 31, self.update_parameter)
-        self.create_slider("d2", 0, 100, 43, self.update_parameter)
-        self.create_slider("alpha_m", 1, 100, 18, self.update_parameter)
-        self.create_slider("dt", 0, 100, 99, self.update_parameter)
+        for params in sliders_params:
+            self.create_slider(
+                params["param_name"],
+                params["min_val"],
+                params["max_val"],
+                params["default_val"],
+                self.update_parameter,
+            )
 
     def create_slider(
         self, param_name: str, min_val: int, max_val: int, default_val: int, callback
@@ -120,7 +135,6 @@ class AnimationWidget(QWidget):
     def update_parameter(self, value: int):
         """
         Updates the parameter of the AnimatedLabel object based on the value of the slider.
-        Also updates the slider's label.
         """
         # Find out which slider was changed
         sender = self.sender()
@@ -128,13 +142,19 @@ class AnimationWidget(QWidget):
             if sender == slider:
                 # Update the parameter in AnimatedLabel
                 setattr(self.animatedLabel.gol, param_name, value / 100)
-                # Update the slider's label
-                label.setText(f"{param_name}: {value / 100}")
+                self.update_slider_label(param_name, value)
                 break
+
+    def update_slider_label(self, param_name: str, value: int):
+        """
+        Updates the label of the slider with the specified parameter name and value.
+        """
+        _, label = self.sliders[param_name]
+        label.setText(f"{param_name}: {value / 100}")
 
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    mainWidget = AnimationWidget(800, 800)
+    mainWidget = AnimationWidget(1000, 600)
     mainWidget.show()
     sys.exit(app.exec())
