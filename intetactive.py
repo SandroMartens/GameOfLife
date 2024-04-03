@@ -1,9 +1,10 @@
 import sys
 
 import numpy as np
-from PySide6.QtCore import QTimer, Qt, QSize
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QImage, QPixmap
 from PySide6.QtWidgets import QApplication, QLabel, QSlider, QVBoxLayout, QWidget
+
 from SmoothGOL import SmoothGameOfLife
 
 
@@ -65,8 +66,19 @@ class AnimationWidget(QWidget):
         self.slider.valueChanged.connect(self.update_interval)
         self.layout.addWidget(self.slider)
 
+        # Create a QLabel to display the slider's current value
+        self.sliderValueLabel = QLabel(f"Interval: {self.slider.value()} ms")
+        self.layout.addWidget(self.sliderValueLabel)
+
+        # Connect the slider's valueChanged signal to update the QLabel
+        self.slider.valueChanged.connect(self.update_slider_value_label)
+
     def update_interval(self, value):
         self.animatedLabel.timer.setInterval(value)
+
+    def update_slider_value_label(self, value):
+        # Update the QLabel text with the current slider value
+        self.sliderValueLabel.setText(f"Interval: {value} ms")
 
 
 if __name__ == "__main__":
