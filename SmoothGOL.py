@@ -79,6 +79,8 @@ class SmoothGameOfLife:
                 self.calculate_next_step()
                 self.display_array()
                 self.clock.tick(self.target_fps)
+            pygame.quit()
+
         finally:
             pygame.quit()
 

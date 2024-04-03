@@ -42,7 +42,9 @@ class AnimatedLabel(QLabel):
             QImage.Format_RGB888,
         )
 
-        pixmap = QPixmap.fromImage(image).scaled(self.width, self.height)
+        pixmap = QPixmap.fromImage(image).scaled(
+            self.width, self.height, mode=Qt.SmoothTransformation
+        )
 
         # Display the QPixmap in the QLabel
         self.setPixmap(pixmap)
@@ -61,24 +63,44 @@ class AnimationWidget(QWidget):
         self.animatedLabel = AnimatedLabel(width, height)
         self.layout.addWidget(self.animatedLabel)
 
-        self.slider = QSlider(Qt.Orientation.Horizontal)
-        self.slider.setMinimum(0)  # Minimum interval of 1 ms
-        self.slider.setMaximum(100)  # Maximum interval of 1000 ms
-        self.slider.setValue(17)  # Default value
-        self.slider.valueChanged.connect(self.update_interval)
-        self.layout.addWidget(self.slider)
+        self.sliders = {}
+        self.create_slider("k", 0, 100, 17, self.update_parameter)
+        # Example for another parameter
+        self.create_slider("b1", 0, 100, 18, self.update_parameter)
+        self.create_slider("b2", 0, 100, 43, self.update_parameter)
+        self.create_slider("d1", 0, 100, 31, self.update_parameter)
+        self.create_slider("d2", 0, 100, 43, self.update_parameter)
+        self.create_slider("alpha_m", 0, 15, 18, self.update_parameter)
+
+    def create_slider(self, param_name, min_val, max_val, default_val, callback):
+        slider = QSlider(Qt.Orientation.Horizontal)
+        slider.setMinimum(min_val)
+        slider.setMaximum(max_val)
+        slider.setValue(default_val)
+        slider.valueChanged.connect(callback)
+        self.layout.addWidget(slider)
 
         # Create a QLabel to display the slider's current value
-        self.sliderValueLabel = QLabel(f"k: {self.slider.value()}")
-        self.layout.addWidget(self.sliderValueLabel)
+        sliderValueLabel = QLabel(f"{param_name}: {slider.value()}")
+        self.layout.addWidget(sliderValueLabel)
 
-    def update_interval(self, value):
-        self.animatedLabel.gol.k = value / 100
-        self.sliderValueLabel.setText(f"k: {value / 100}")
+        # Store the slider and its label in the dictionary
+        self.sliders[param_name] = (slider, sliderValueLabel)
+
+    def update_parameter(self, value):
+        # Find out which slider was changed
+        sender = self.sender()
+        for param_name, (slider, label) in self.sliders.items():
+            if sender == slider:
+                # Update the parameter in AnimatedLabel
+                setattr(self.animatedLabel.gol, param_name, value / 100)
+                # Update the slider's label
+                label.setText(f"{param_name}: {value / 100}")
+                break
 
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    mainWidget = AnimationWidget(1000, 1000)
+    mainWidget = AnimationWidget(800, 800)
     mainWidget.show()
     sys.exit(app.exec())
