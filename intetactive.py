@@ -10,6 +10,15 @@ from SmoothGOL import SmoothGameOfLife
 
 class AnimatedLabel(QLabel):
     def __init__(self, width: int, height: int):
+        """
+        Initializes the AnimatedLabel object with the specified width and height.
+        Sets up the layout, frame count, field height, field width, and the SmoothGameOfLife object.
+        Starts the QTimer for updating the animation.
+
+        Args:
+            width (int): The width of the label.
+            height (int): The height of the label.
+        """
         super().__init__()
         self.layout = QVBoxLayout(self)
         self.width = width
@@ -31,7 +40,10 @@ class AnimatedLabel(QLabel):
         self.resize(width, height)
 
     def update_animation(self):
-        # Update your numpy array here
+        """
+        Updates the animation by updating the numpy array, converting it to a QImage and then to a QPixmap,
+        and displaying the QPixmap in the QLabel.
+        """
         self.update_numpy_array()
 
         # Convert numpy array to QImage and then to QPixmap
@@ -50,6 +62,10 @@ class AnimatedLabel(QLabel):
         self.setPixmap(pixmap)
 
     def update_numpy_array(self):
+        """
+        Updates the numpy array by calculating the next step of the SmoothGameOfLife object,
+        applying the colormap to the array, and converting it to a numpy int8 array.
+        """
         self.gol.calculate_next_step()
         rgb_array = self.gol.apply_colormap(self.gol.array)
         self.data = rgb_array.astype(np.int8)
@@ -70,7 +86,8 @@ class AnimationWidget(QWidget):
         self.create_slider("b2", 0, 100, 43, self.update_parameter)
         self.create_slider("d1", 0, 100, 31, self.update_parameter)
         self.create_slider("d2", 0, 100, 43, self.update_parameter)
-        self.create_slider("alpha_m", 0, 15, 18, self.update_parameter)
+        self.create_slider("alpha_m", 1, 100, 18, self.update_parameter)
+        self.create_slider("dt", 0, 100, 99, self.update_parameter)
 
     def create_slider(self, param_name, min_val, max_val, default_val, callback):
         slider = QSlider(Qt.Orientation.Horizontal)
