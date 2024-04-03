@@ -203,8 +203,8 @@ class SmoothGameOfLife:
         )
 
         dx = 2 * next_full_step - 1
-        # dx = next_full_step - self.array
-        dx = next_full_step - cell_sums
+        dx = next_full_step - self.array
+        # dx = next_full_step - cell_sums
         next_intermediate_step = self.array + self.dt * dx
         self.array = next_intermediate_step.clip(0, 1)
 

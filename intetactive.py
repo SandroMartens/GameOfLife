@@ -14,11 +14,12 @@ class AnimatedLabel(QLabel):
         self.width = width
         self.height = height
         self.frame_count = 0
-        self.gol = SmoothGameOfLife(field_height=200, field_width=200)
+        self.field_height = 200
+        self.field_width = 200
+        self.gol = SmoothGameOfLife(
+            field_height=self.field_height, field_width=self.field_width
+        )
         self.gol.generate_initial_state()
-
-        # Initialize your numpy array with the desired shape and dtype
-        self.data = np.zeros((height, width, 3), dtype=np.uint8)
 
         # Setup the timer
         self.timer = QTimer(self)
@@ -31,13 +32,14 @@ class AnimatedLabel(QLabel):
         self.update_numpy_array()
 
         # Convert numpy array to QImage and then to QPixmap
-        image = QImage(self.data, self.width, self.height, QImage.Format_RGB888)
-        scaled_image = image.scaled(
-            QSize(self.width, self.height),
-            # aspectMode=Qt.AspectRatioMode.KeepAspectRatio,
-            # mode=Qt.TransformationMode.SmoothTransformation,
+        image = QImage(
+            self.data,
+            self.field_width,
+            self.field_height,
+            QImage.Format_RGB888,
         )
-        pixmap = QPixmap.fromImage(image)
+
+        pixmap = QPixmap.fromImage(image).scaled(self.width, self.height)
 
         # Display the QPixmap in the QLabel
         self.setPixmap(pixmap)
