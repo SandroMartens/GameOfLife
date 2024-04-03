@@ -1,22 +1,20 @@
 import sys
 
 import numpy as np
-from PySide6.QtCore import QTimer, Qt
+from PySide6.QtCore import QTimer, Qt, QSize
 from PySide6.QtGui import QImage, QPixmap
 from PySide6.QtWidgets import QApplication, QLabel, QSlider, QVBoxLayout, QWidget
 from SmoothGOL import SmoothGameOfLife
 
 
 class AnimatedLabel(QLabel):
-    def __init__(self, width, height):
+    def __init__(self, width: int, height: int):
         super().__init__()
         self.layout = QVBoxLayout(self)
         self.width = width
         self.height = height
         self.frame_count = 0
-        self.gol = SmoothGameOfLife(
-            screen_height=height, screen_width=width, square_size=1
-        )
+        self.gol = SmoothGameOfLife(field_height=200, field_width=200)
         self.gol.generate_initial_state()
 
         # Initialize your numpy array with the desired shape and dtype
@@ -34,6 +32,11 @@ class AnimatedLabel(QLabel):
 
         # Convert numpy array to QImage and then to QPixmap
         image = QImage(self.data, self.width, self.height, QImage.Format_RGB888)
+        scaled_image = image.scaled(
+            QSize(self.width, self.height),
+            # aspectMode=Qt.AspectRatioMode.KeepAspectRatio,
+            # mode=Qt.TransformationMode.SmoothTransformation,
+        )
         pixmap = QPixmap.fromImage(image)
 
         # Display the QPixmap in the QLabel
@@ -66,6 +69,6 @@ class AnimationWidget(QWidget):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    mainWidget = AnimationWidget(200, 200)
+    mainWidget = AnimationWidget(1000, 1000)
     mainWidget.show()
     sys.exit(app.exec())

@@ -11,7 +11,6 @@ class SmoothGameOfLife:
 
     def __init__(
         self,
-        square_size: int = 5,
         target_fps: int = 10,
         colormap: str = "magma",
         dt: float = 1,
@@ -22,9 +21,10 @@ class SmoothGameOfLife:
         d2: float = 0.4375,
         screen_width: int = 1000,
         screen_height: int = 1000,
+        field_width: int = 200,
+        field_height: int = 200,
         alpha_m: float = 0.15,
         cell_size: float = 1,
-        # alpha_n: float = 0.15,
         init_density: float = 0.5,
         k: float = 0.18,
     ) -> None:
@@ -47,16 +47,15 @@ class SmoothGameOfLife:
 
         Initializes the game window, internal state, and starts with a randomly generated map based on the given parameters.
         """
-        self.square_size = square_size
         self.target_fps = target_fps
         self.screen_width = screen_width
         self.screen_height = screen_height
+        self.field_width = field_width
+        self.field_height = field_height
         self.colormap = colormap
         self.init_density = init_density
         self.dt = dt
         self.n_intermediate_time_steps = dt
-        self.n_squares_width = self.screen_width // self.square_size
-        self.n_squares_height = self.screen_height // self.square_size
         self.running = True
         self.b1 = b1
         self.b2 = b2
@@ -87,10 +86,7 @@ class SmoothGameOfLife:
         """Resize and prepare the given array for display."""
         resized_image = cv2.resize(
             (array.astype(np.uint8)),
-            (
-                self.n_squares_width * self.square_size,
-                self.n_squares_height * self.square_size,
-            ),
+            (self.screen_width, self.screen_height),
             interpolation=cv2.INTER_LANCZOS4,
         )
         return resized_image
@@ -142,7 +138,7 @@ class SmoothGameOfLife:
         self.screen = pygame.display.set_mode((self.screen_width, self.screen_height))
         self.clock = pygame.time.Clock()
         rng = np.random.default_rng(self.random_state)
-        array = rng.random(size=(self.n_squares_width, self.n_squares_height))
+        array = rng.random(size=(self.field_width, self.field_height))
         mask = rng.random(size=array.shape) < self.init_density
         masked_array = np.where(mask, array, 0)
         self.array = masked_array
@@ -276,7 +272,6 @@ class Slider:
 
 def main():
     game = SmoothGameOfLife(
-        # square_size=5,
         # target_fps=50,
         # dt=0.2,
         # random_state=32,
