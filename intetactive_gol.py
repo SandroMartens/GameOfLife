@@ -9,6 +9,7 @@ from PySide6.QtWidgets import (
     QLabel,
     QSlider,
     QVBoxLayout,
+    QGridLayout,
     QWidget,
 )
 
@@ -20,10 +21,10 @@ class AnimatedLabel(QLabel):
         self,
         width: int,
         height: int,
-        field_height: int = 200,
-        field_width: int = 200,
-        cell_size: int = 1,
-        init_density: float = 0.6,
+        field_height: int = 220,
+        field_width: int = 220,
+        cell_size: int = 2,
+        init_density: float = 0.55,
         random_state: int = 32,
         timer_interval: int = 100,
     ):
@@ -55,6 +56,7 @@ class AnimatedLabel(QLabel):
             cell_size=cell_size,
             init_density=init_density,
             random_state=random_state,
+            # mode=1,
         )
         self.gol.generate_initial_state()
 
@@ -75,7 +77,7 @@ class AnimatedLabel(QLabel):
         """
         Change the simulation mode based on the selected index from the dropdown.
         """
-        self.gol.mode = index
+        self.gol.mode = index + 1
 
     def update_animation(self):
         """
@@ -121,37 +123,44 @@ class AnimationWidget(QWidget):
         Creates an instance of the AnimatedLabel class and a set of sliders.
         """
         super().__init__()
-        self.layout = QVBoxLayout(self)
+        self.layout = QGridLayout(self)
 
         self.animatedLabel = AnimatedLabel(width, height)
-        self.layout.addWidget(self.animatedLabel)
+        self.layout.addWidget(self.animatedLabel, 0, 0, 1, 2)
 
         sliders_params = [
-            {"param_name": "k", "min_val": 0, "max_val": 100, "default_val": 17},
-            {"param_name": "b1", "min_val": 0, "max_val": 100, "default_val": 18},
-            {"param_name": "b2", "min_val": 0, "max_val": 100, "default_val": 43},
+            {"param_name": "k", "min_val": 1, "max_val": 100, "default_val": 18},
+            {"param_name": "b1", "min_val": 0, "max_val": 100, "default_val": 19},
+            {"param_name": "b2", "min_val": 0, "max_val": 100, "default_val": 44},
             {"param_name": "d1", "min_val": 0, "max_val": 100, "default_val": 31},
-            {"param_name": "d2", "min_val": 0, "max_val": 100, "default_val": 43},
+            {"param_name": "d2", "min_val": 0, "max_val": 100, "default_val": 44},
             {
                 "param_name": "alpha_m",
                 "min_val": 1,
                 "max_val": 100,
                 "default_val": 15,
             },
-            {"param_name": "dt", "min_val": 0, "max_val": 100, "default_val": 99},
+            {"param_name": "dt", "min_val": 0, "max_val": 100, "default_val": 100},
         ]
         self.sliders = {}
-        for params in sliders_params:
+        for i, params in enumerate(sliders_params):
             self.create_slider(
                 params["param_name"],
                 params["min_val"],
                 params["max_val"],
                 params["default_val"],
                 self.update_parameter,
+                i,
             )
 
     def create_slider(
-        self, param_name: str, min_val: int, max_val: int, default_val: int, callback
+        self,
+        param_name: str,
+        min_val: int,
+        max_val: int,
+        default_val: int,
+        callback,
+        row,
     ):
         """
         Creates a slider with the specified parameters and adds it to the layout.
