@@ -60,24 +60,11 @@ class AnimatedLabel(QLabel):
         )
         self.gol.generate_initial_state()
 
-        # Setup the dropdown menu for mode selection
-        self.mode_selector = QComboBox(self)
-        self.mode_selector.addItem("Mode 1")
-        self.mode_selector.addItem("Mode 2")
-        self.mode_selector.addItem("Mode 3")
-        self.mode_selector.currentIndexChanged.connect(self.change_mode)
-
         # Setup the timer
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_animation)
         self.timer.start(timer_interval)  # Update interval in milliseconds
         self.resize(width, height)
-
-    def change_mode(self, index):
-        """
-        Change the simulation mode based on the selected index from the dropdown.
-        """
-        self.gol.mode = index + 1
 
     def update_animation(self):
         """
@@ -152,6 +139,20 @@ class AnimationWidget(QWidget):
                 self.update_parameter,
                 i,
             )
+
+        # Create and setup the mode selector
+        self.mode_selector = QComboBox()
+        self.mode_selector.addItem("Mode 1")
+        self.mode_selector.addItem("Mode 2")
+        self.mode_selector.addItem("Mode 3")
+        self.mode_selector.currentIndexChanged.connect(self.change_mode)
+        self.layout.addWidget(self.mode_selector)  # Adjust position as needed
+
+    def change_mode(self, index):
+        """
+        Change the simulation mode based on the selected index from the dropdown.
+        """
+        self.animatedLabel.gol.mode = index + 1
 
     def create_slider(
         self,
