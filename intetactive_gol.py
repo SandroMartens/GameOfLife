@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QGridLayout,
     QWidget,
+    QPushButton,
 )
 
 from SmoothGOL import SmoothGameOfLife
@@ -23,7 +24,7 @@ class AnimatedLabel(QLabel):
         height: int,
         field_height: int = 220,
         field_width: int = 220,
-        cell_size: int = 2,
+        cell_size: int = 3,
         init_density: float = 0.55,
         random_state: int = 32,
         timer_interval: int = 100,
@@ -148,6 +149,21 @@ class AnimationWidget(QWidget):
         self.mode_selector.currentIndexChanged.connect(self.change_mode)
         self.layout.addWidget(self.mode_selector)  # Adjust position as needed
 
+        # Create the reset button
+        self.resetButton = QPushButton("Reset Simulation")
+        self.resetButton.clicked.connect(self.reset_simulation)
+        # Adjust the position in the layout as needed, for example, adding it below the mode selector
+        self.layout.addWidget(
+            self.resetButton, len(sliders_params) + 2, 0, 1, 2
+        )  # Adjust grid position as needed
+
+    def reset_simulation(self):
+        """
+        Resets the simulation to its initial state.
+        """
+        self.animatedLabel.gol.generate_initial_state()  # Assuming this method resets the game state
+        self.animatedLabel.update_animation()  # Update the animation to reflect the reset state
+
     def change_mode(self, index):
         """
         Change the simulation mode based on the selected index from the dropdown.
@@ -203,6 +219,6 @@ class AnimationWidget(QWidget):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    mainWidget = AnimationWidget(1000, 600)
+    mainWidget = AnimationWidget(800, 800)
     mainWidget.show()
     sys.exit(app.exec())
