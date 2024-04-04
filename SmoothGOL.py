@@ -206,7 +206,7 @@ class SmoothGameOfLife:
             birth_conditions=birth_conditions,
         )
 
-        dx = self.calculate_differential_step(cell_sums, next_full_step)
+        dx = self.calculate_state_change(cell_sums, next_full_step)
         next_intermediate_step = self.array + self.dt * dx
         self.array = next_intermediate_step.clip(0, 1)
 
