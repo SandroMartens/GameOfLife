@@ -206,14 +206,20 @@ class SmoothGameOfLife:
             birth_conditions=birth_conditions,
         )
 
+        dx = self.calculate_differential_step(cell_sums, next_full_step)
+        next_intermediate_step = self.array + self.dt * dx
+        self.array = next_intermediate_step.clip(0, 1)
+
+    def calculate_state_change(
+        self, cell_sums: np.ndarray, next_full_step: np.ndarray
+    ) -> np.ndarray:
         if self.mode == 1:
             dx = next_full_step - self.array
         elif self.mode == 2:
             dx = 2 * next_full_step - 1
-        else:
+        elif self.mode == 3:
             dx = next_full_step - cell_sums
-        next_intermediate_step = self.array + self.dt * dx
-        self.array = next_intermediate_step.clip(0, 1)
+        return dx
 
     def apply_kernel(self, radius: float, size: float) -> np.ndarray:
         kernel = self.get_gaussian_kernel(sigma=radius, size=size)
