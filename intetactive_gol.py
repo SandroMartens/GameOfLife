@@ -18,13 +18,17 @@ from SmoothGOL import SmoothGameOfLife
 
 
 class AnimatedLabel(QLabel):
+    """
+    The AnimatedLabel class represents a QLabel widget that displays an animated simulation of Conway's Game of Life.
+    """
+
     def __init__(
         self,
-        width: int,
-        height: int,
-        field_height: int = 220,
-        field_width: int = 220,
-        cell_size: int = 3,
+        winbdow_width: int,
+        window_height: int,
+        field_height: int = 500,
+        field_width: int = 500,
+        cell_size: int = 1,
         init_density: float = 0.55,
         random_state: int = 32,
         timer_interval: int = 100,
@@ -46,8 +50,8 @@ class AnimatedLabel(QLabel):
         """
         super().__init__()
         self.layout = QVBoxLayout(self)
-        self.width = width
-        self.height = height
+        self.width = winbdow_width
+        self.height = window_height
         self.frame_count = 0
         self.field_height = field_height
         self.field_width = field_width
@@ -65,7 +69,7 @@ class AnimatedLabel(QLabel):
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_animation)
         self.timer.start(timer_interval)  # Update interval in milliseconds
-        self.resize(width, height)
+        self.resize(winbdow_width, window_height)
 
     def update_animation(self):
         """
@@ -95,7 +99,7 @@ class AnimatedLabel(QLabel):
         applying the colormap to the array, and converting it to a numpy int8 array.
         """
         self.gol.calculate_next_step()
-        rgb_array = self.gol.apply_colormap(self.gol.array)
+        rgb_array = self.gol.apply_colormap(self.gol.current_state_array)
         self.data = rgb_array.astype(np.int8)
 
 

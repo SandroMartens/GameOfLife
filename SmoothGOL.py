@@ -15,10 +15,10 @@ class SmoothGameOfLife:
         colormap: str = "magma",
         dt: float = 1,
         random_state: int | None = None,
-        b1: float = 0.1875,
-        b2: float = 0.4375,
-        d1: float = 0.3125,
-        d2: float = 0.4375,
+        survival_lower_threshold: float = 0.1875,
+        survival_upper_threshold: float = 0.4375,
+        birth_lower_threshold: float = 0.3125,
+        birth_upper_threshold: float = 0.4375,
         screen_width: int = 1000,
         screen_height: int = 1000,
         field_width: int = 200,
@@ -58,10 +58,10 @@ class SmoothGameOfLife:
         self.dt = dt
         self.n_intermediate_time_steps = dt
         self.running = True
-        self.b1 = b1
-        self.b2 = b2
-        self.d1 = d1
-        self.d2 = d2
+        self.birth_lower_threshold = birth_lower_threshold
+        self.birth_upper_threshold = birth_upper_threshold
+        self.survival_lower_threshold = survival_lower_threshold
+        self.survival_upper_threshold = survival_upper_threshold
         self.cell_size = cell_size
         self.alpha_m = alpha_m
         self.mode = mode
@@ -118,7 +118,7 @@ class SmoothGameOfLife:
         """
         Display the array on the Pygame window.
         """
-        array_to_show = np.clip(self.array, 0, 1) * 255
+        array_to_show = np.clip(self.current_state_array, 0, 1) * 255
         resized_array = self.resize_image(array_to_show)
         rgb_array = self.apply_colormap(resized_array)
         surface = pygame.surfarray.make_surface(rgb_array)
@@ -145,7 +145,7 @@ class SmoothGameOfLife:
         array = rng.random(size=(self.field_width, self.field_height))
         mask = rng.random(size=array.shape) < self.init_density
         masked_array = np.where(mask, array, 0)
-        self.array = masked_array
+        self.current_state_array = masked_array
 
     def calculate_new_state(
         self,
@@ -176,11 +176,11 @@ class SmoothGameOfLife:
         kernel_diameter_cell = 5 * cell_radius
         kernel_diameter_neighborhood_region = 5 * neighboorhood_region_radius
 
-        neighbor_sums = self.apply_kernel(
+        neighbor_sums = self.apply_convolution_to_state(
             radius=neighboorhood_region_radius,
             size=kernel_diameter_neighborhood_region,
         ).clip(0, 1)
-        cell_sums = self.apply_kernel(
+        cell_sums = self.apply_convolution_to_state(
             radius=cell_radius,
             size=kernel_diameter_cell,
         ).clip(0, 1)
@@ -189,15 +189,15 @@ class SmoothGameOfLife:
 
         aliveness = self.apply_sigmoid_function(k=self.alpha_m, x=cell_sums, offset=0.5)
 
-        survival_conditions = self.calculate_conditions(
-            x=neighbor_sums,
-            lower_threshold=self.b1,
-            upper_threshold=self.b2,
-        )
         birth_conditions = self.calculate_conditions(
             x=neighbor_sums,
-            lower_threshold=self.d1,
-            upper_threshold=self.d2,
+            lower_threshold=self.birth_lower_threshold,
+            upper_threshold=self.birth_upper_threshold,
+        )
+        survival_conditions = self.calculate_conditions(
+            x=neighbor_sums,
+            lower_threshold=self.survival_lower_threshold,
+            upper_threshold=self.survival_upper_threshold,
         )
 
         next_full_step = self.calculate_new_state(
@@ -206,24 +206,24 @@ class SmoothGameOfLife:
             birth_conditions=birth_conditions,
         )
 
-        dx = self.calculate_state_change(cell_sums, next_full_step)
-        next_intermediate_step = self.array + self.dt * dx
-        self.array = next_intermediate_step.clip(0, 1)
+        dx = self.calculate_delta_state(cell_sums, next_full_step)
+        next_intermediate_step = self.current_state_array + self.dt * dx
+        self.current_state_array = next_intermediate_step.clip(0, 1)
 
-    def calculate_state_change(
+    def calculate_delta_state(
         self, cell_sums: np.ndarray, next_full_step: np.ndarray
     ) -> np.ndarray:
         if self.mode == 1:
-            dx = next_full_step - self.array
+            dx = next_full_step - self.current_state_array
         elif self.mode == 2:
             dx = 2 * next_full_step - 1
         elif self.mode == 3:
             dx = next_full_step - cell_sums
         return dx
 
-    def apply_kernel(self, radius: float, size: float) -> np.ndarray:
+    def apply_convolution_to_state(self, radius: float, size: float) -> np.ndarray:
         kernel = self.get_gaussian_kernel(sigma=radius, size=size)
-        result = scipy.ndimage.convolve(self.array, kernel, mode="wrap")
+        result = scipy.ndimage.convolve(self.current_state_array, kernel, mode="wrap")
         return result
 
     def calculate_transition_intervals(
