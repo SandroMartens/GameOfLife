@@ -74,6 +74,8 @@ class SmoothGameOfLife:
         """
         Run the game loop.
         """
+        self.screen = pygame.display.set_mode((self.screen_width, self.screen_height))
+        self.clock = pygame.time.Clock()
         self.generate_initial_state()
         try:
             while self.running:
@@ -139,8 +141,6 @@ class SmoothGameOfLife:
         """
         Generate the initial state of the game.
         """
-        self.screen = pygame.display.set_mode((self.screen_width, self.screen_height))
-        self.clock = pygame.time.Clock()
         rng = np.random.default_rng(self.random_state)
         array = rng.random(size=(self.field_width, self.field_height))
         mask = rng.random(size=array.shape) < self.init_density
