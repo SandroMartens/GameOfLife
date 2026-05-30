@@ -4,3 +4,6 @@
 settings.json
 smoothlife
 /__pycache__
+.qodo
+.venv
+.vscode

@@ -26,10 +26,10 @@ class AnimatedLabel(QLabel):
         self,
         winbdow_width: int,
         window_height: int,
-        field_height: int = 500,
-        field_width: int = 500,
+        field_height: int = 300,
+        field_width: int = 300,
         cell_size: int = 1,
-        init_density: float = 0.55,
+        init_density: float = 0.7,
         random_state: int = 32,
         timer_interval: int = 100,
     ):
@@ -122,10 +122,30 @@ class AnimationWidget(QWidget):
 
         sliders_params = [
             {"param_name": "k", "min_val": 1, "max_val": 100, "default_val": 18},
-            {"param_name": "b1", "min_val": 0, "max_val": 100, "default_val": 19},
-            {"param_name": "b2", "min_val": 0, "max_val": 100, "default_val": 44},
-            {"param_name": "d1", "min_val": 0, "max_val": 100, "default_val": 31},
-            {"param_name": "d2", "min_val": 0, "max_val": 100, "default_val": 44},
+            {
+                "param_name": "birth_lower_threshold",
+                "min_val": 0,
+                "max_val": 100,
+                "default_val": 31,
+            },
+            {
+                "param_name": "birth_upper_threshold",
+                "min_val": 0,
+                "max_val": 100,
+                "default_val": 44,
+            },
+            {
+                "param_name": "survival_lower_threshold",
+                "min_val": 0,
+                "max_val": 100,
+                "default_val": 19,
+            },
+            {
+                "param_name": "survival_upper_threshold",
+                "min_val": 0,
+                "max_val": 100,
+                "default_val": 44,
+            },
             {
                 "param_name": "alpha_m",
                 "min_val": 1,
