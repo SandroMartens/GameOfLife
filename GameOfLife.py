@@ -1,7 +1,5 @@
-import cv2
 import numpy as np
 import pygame
-import scipy
 import scipy.signal
 
 
@@ -44,18 +42,6 @@ class GameOfLife:
 
         pygame.quit()
 
-    def resize_image(self, array: np.ndarray) -> np.ndarray:
-        """Resize and prepare the given array for display."""
-        resized_image = cv2.resize(
-            (array.astype(np.uint8)),
-            (
-                self.n_squares_width * self.square_size,
-                self.n_squares_height * self.square_size,
-            ),
-            interpolation=cv2.INTER_LANCZOS4,
-        )
-        return resized_image
-
     def handle_events(self) -> None:
         """
         Handle user events.
@@ -71,9 +57,15 @@ class GameOfLife:
         Parameters:
         array (np.ndarray): The array to display.
         """
-        resized_array = self.resize_image(self.array)
-        surface = pygame.surfarray.make_surface(resized_array * 255)
-        self.screen.blit(surface, (0, 0))
+        surface = pygame.surfarray.make_surface(self.array * 255).convert(self.screen)
+        scaled_surface = pygame.transform.smoothscale(
+            surface,
+            (
+                self.n_squares_width * self.square_size,
+                self.n_squares_height * self.square_size,
+            ),
+        )
+        self.screen.blit(scaled_surface, (0, 0))
         pygame.display.flip()
 
     def initialize_map(self) -> None:
