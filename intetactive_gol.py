@@ -279,7 +279,7 @@ class AnimationWidget(QWidget):
         self.animatedLabel = AnimatedLabel(width, height)
         self._layout.addWidget(self.animatedLabel, 0, 0, 1, 2)
 
-        self.slider_labels: dict[str, QLabel] = {}
+        self.slider_widgets: dict[str, tuple[QSlider, QLabel]] = {}
         for row, config in enumerate(SLIDER_CONFIGS):
             self._add_slider(config, row + 1)
 
@@ -297,12 +297,12 @@ class AnimationWidget(QWidget):
     def _add_slider(self, config: SliderConfig, row: int) -> None:
         """Create a labelled slider for one simulation parameter."""
         label = QLabel(f"{config.name}: {config.default_val / 100:.2f}")
-        self.slider_labels[config.name] = label
 
         slider = QSlider(Qt.Orientation.Horizontal)
         slider.setRange(config.min_val, config.max_val)
         slider.setValue(config.default_val)
         slider.valueChanged.connect(partial(self._on_slider_changed, config.name))
+        self.slider_widgets[config.name] = (slider, label)
 
         self._layout.addWidget(slider, row, 0)
         self._layout.addWidget(label, row, 1)
@@ -310,10 +310,18 @@ class AnimationWidget(QWidget):
     def _on_slider_changed(self, param_name: str, value: int) -> None:
         """Write the scaled slider value to the simulation and update the label."""
         setattr(self.animatedLabel.gol, param_name, value / 100)
-        self.slider_labels[param_name].setText(f"{param_name}: {value / 100:.2f}")
+        self.slider_widgets[param_name][1].setText(f"{param_name}: {value / 100:.2f}")
 
     def _reset_simulation(self) -> None:
-        """Re-randomise the grid and redraw."""
+        """Reset parameter sliders, mode, and grid to their defaults."""
+        for config in SLIDER_CONFIGS:
+            slider, label = self.slider_widgets[config.name]
+            slider.blockSignals(True)
+            slider.setValue(config.default_val)
+            slider.blockSignals(False)
+            setattr(self.animatedLabel.gol, config.name, config.default_val / 100)
+            label.setText(f"{config.name}: {config.default_val / 100:.2f}")
+        self.mode_selector.setCurrentIndex(0)
         self.animatedLabel.gol.generate_initial_state()
         self.animatedLabel.update_animation()
 
